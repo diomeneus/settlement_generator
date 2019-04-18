@@ -3,6 +3,8 @@ from math import cos, sin, sqrt, radians
 import random
 import os
 import sqlite3
+import ast
+
 from sqlite3 import Error
 
 class DrawRiver:
@@ -37,8 +39,6 @@ class DrawRiver:
                                    fill=self.color,
                                    tags=self.tags)
 
-
-# before it had a separate def to call the draw immediately following the init. couldn't tell why not to combine
 class FillHexagon:
     def __init__(self, parent, x, y, length, color, border, tags):
         self.parent = parent  # canvas
@@ -47,10 +47,10 @@ class FillHexagon:
         self.length = length  # length of a side
         self.color = color  # fill color
 
+        self.tags = tags
         self.district = False
         self.river = False
         self.coastal = False
-        self.tags = tags
 
         angle = 60
         coordinates = []
@@ -75,6 +75,9 @@ class FillHexagon:
                                    fill=self.color,
                                    outline=border,
                                    tags=self.tags)
+
+
+# before it had a separate def to call the draw immediately following the init. couldn't tell why not to combine
 
 # ---------------------------------------------------------
 class Main(Tk):
@@ -136,7 +139,7 @@ class Main(Tk):
         e1.pack()
 
 
-        self.can = Canvas(hex_display_frame, width=400, height=300, bg="#fffafa")
+        self.can = Canvas(hex_display_frame, width=465, height=385, bg="#fffafa")
         self.can.pack()
         """Assigning controls"""
         self.can.bind("<Button-1>", self.click)
@@ -172,7 +175,7 @@ class Main(Tk):
 
         """
         # create a database connection
-        database = "T:\\sqlite\SQLiteStudio\settlement_generator"
+        database = "..\DB\settlement_generator.db"
         self.conn = self.create_connection(database)
         self.count = self.rowcounts(self.conn)  # counts the max rowlength for each table.
         #with self.conn:
@@ -192,8 +195,6 @@ class Main(Tk):
                 self.can.itemconfigure(i.tags, fill="#0000FF")
             if i.coastal and i.district:
                 self.can.itemconfigure(i.tags, fill="#00FFFF")
-
-
 
     def click(self, evt):
         if self.editing:
@@ -258,9 +259,8 @@ class Main(Tk):
             print(layoutstr)
 
     def brushswap (self,brush):
-        print ("\nset brush to "+brush)
+        #print ("\nset brush to "+brush)
         self.editorbrush.set(brush)
-
 
     def swapeditor (self):
         #self.key_empty() #new inits wipe i'm pretty sure
@@ -277,7 +277,7 @@ class Main(Tk):
 
     def generate_name (self, locks, type, length):
         self.settlementname.set("test text")
-        print("\nNEW NAMES BITCHESSSSS\n")
+        #print("\nNEW NAMES BITCHESSSSS\n")
 
     #Generates the random values for building the settlement
     def generate (self, generate_size):
@@ -288,59 +288,81 @@ class Main(Tk):
             for x in range(3):
                 settlement_value[x]=(random.randint(1, self.count[x]))#self.count[x]+1)) change 6 to the commented text when you have more layouts.
             """temporarily just random 1-10 layout or a specific layout. Delete me"""
-            settlement_value[2]=56#(random.randint(1, 50))
+            settlement_value[2]=56#(random.randint(1, 50)) #56 is our tester
 
             #generates the values for the districts and their features
             with self.conn:
-                print("Max rolls for each table: ",self.count)
+                #print("Max rolls for each table: ",self.count)
                 settlement_theme = self.valuenames(self.conn, "theme", "theme_id", str(settlement_value[0]))
                 settlement_feature = self.valuenames(self.conn, "settlement_feature", "set_feature_id", str(settlement_value[1]))
                 settlement_layout = self.valuenames(self.conn, "layout", "layout_id", str(settlement_value[2]))
                 # splits the layout list into a proper integer list and sends it to be populated.
-                """
-                layout_hexes[0]: Districts
-                layout_hexes[1]: coastal
-                layout_hexes[2]: always river now
-                #split the layout string by r, make coastal the 1st set (before r). Split coastal by :, makes districts the 1st set (before :)
-                #if r or : are not found than the split will be only 1 list long, so if they are bigger we split them up accordingly.
-                """
+                """ layout_hexes is going bye bye """
                 layout_hexes = [0] * 3  # * (coastal+river+1)
 
                 river = settlement_layout[2].split('r')
-                coastal =river[0].split(':')
-                layout_hexes[0]=coastal[0].split('.')
+                coastals =river[0].split(':')
+                layout_hexes[0]=coastals[0].split('.')
                 if len(river)>1:
                     layout_hexes[2] = river[1].split('.')
                     for x in range(len(layout_hexes[2])):
                         layout_hexes[2][x] = layout_hexes[2][x].split('-')
                         for z in range(len(layout_hexes[2][x])):
                             layout_hexes[2][x][z] = int(layout_hexes[2][x][z])
-                if len(coastal)>1:
-                    layout_hexes[1] = coastal[1].split('.')
+                if len(coastals)>1:
+                    layout_hexes[1] = coastals[1].split('.')
                 for a in range(2):
                     for x in range(len(layout_hexes[a])):
                         layout_hexes[a][x] = int(layout_hexes[a][x])
 
-                print("river: ", layout_hexes[2])
-                print("coastal: ", layout_hexes[1])
-                print("district: ", layout_hexes[0])
+                #print("river: ", layout_hexes[2])
+                #print("coastal: ", layout_hexes[1])
+                #print("district: ", layout_hexes[0])
 
-                print(settlement_theme[1], " ", settlement_feature[1], " ", settlement_layout[1], " ",layout_hexes[0])
+                #print(settlement_theme[1], " ", settlement_feature[1], " ", settlement_layout[1], " ",layout_hexes[0])
 
                 for x in range(len(layout_hexes[0])):
                     value=self.valuenames(self.conn, "district_type", "district_type_id", str(random.randint(1, self.count[3])))[1]
                     self.district_type_feature[x][0] = value
                     value = self.valuenames(self.conn, "district_feature", "district_feature_id",str(random.randint(1, self.count[4])))[1]
                     self.district_type_feature[x][1] = value
-                    print("District ",x+1,self.district_type_feature[x])
-            self.init_grid(layout_hexes, 10, 7, 30)
+                    #print("District ",x+1,self.district_type_feature[x])
+            #self.init_grid(layout_hexes, 10, 7, 30)
+            sampleDBdistrict = "[[1, 4], [2, 3], [2, 4], [2, 5], [3, 3], [3, 4], [3, 5]]"
+            sampleDBcoastal = "[[0, 4], [1, 2], [1, 3], [1, 5], [2, 2]]"
+            sampleDBriver = StringVar()
+            print (sampleDBriver)
+            districts = ast.literal_eval(sampleDBdistrict)
+            coastal = ast.literal_eval(sampleDBcoastal)
+            #rivers = ""
+            print (districts)
+            print (districts[0])
+            self.init_grid(districts,coastal,river,10,7,30)
 
     #Draws a hex grid from the parameters sent
-    def init_grid(self, layout_positions, cols, rows, size):
+    def init_grid(self, layout_districts,layout_coastal,layout_river, cols, rows, size):
+        self.clear_grid()
+        x=-1
+        for i in layout_districts:
+            x+=1
+            if layout_districts[x][0] % 2 == 0: offset = size * sqrt(3) / 2
+            else: offset = 0
+            h = FillHexagon(self.can,
+                            layout_districts[x][0] * (size * 1.5) + 17,
+                            (layout_districts[x][1] * (size * sqrt(3))) + offset,
+                            size,
+                            "#778899",
+                            "#111111",
+                            "{}.{}".format(layout_districts[x][1],layout_districts[x][0]))  # ,"hex")) #SEND THE HEX TAG HERE
+            self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
+
+
+        """OLD CODE"""
+
+        """
         for x in range(cols*rows):
             self.layout[x]=0 #resets the hex array to 0
-        self.clear_grid()
-        """if you are in editing mode, make the background green, else run through a for loop for each list sent in layout_positions then set self.layout at the position value to 1 for district or 2 for coastline """
+        #if you are in editing mode, make the background green, else run through a for loop for each list sent in layout_positions then set self.layout at the position value to 1 for district or 2 for coastline 
         if self.editing:
             self.can.config(background="#a1e2a1")
         else:
@@ -356,8 +378,6 @@ class Main(Tk):
             print (self.layout)
         #big endian binary coding: 1111   1= district, 2= coast, 4=river, 8=?,
 
-        """IT MAY BECOME WISE TO SPLIT THE ORDER FROM ONE FOR LOOP TO A FOR LOOP FOR EACH TYPE BEING DRAWN.
-        that was the order in self.hexegons is actually grouped by type"""
         districtnum = 0
         hexcount = -1
         for c in range(cols):
@@ -367,16 +387,16 @@ class Main(Tk):
                 hexcount += 1
                 if self.layout[hexcount] == 2:
                     coast = FillHexagon(self.can,
-                                        c * (size * 1.5),
+                                        c * (size * 1.5)+17,
                                         (r * (size * sqrt(3))) + offset,
                                         size,
                                         "#9FB6CD",
                                         "",#"#DBDBDB",
-                                        "{}.{}".format(r, c))  # ,"hex")) #SEND THE HEX TAG HERE
+                                        "{}.{}".format(r, c))
                     self.hexagons.append(coast)  # list of hexagon objects created by fillhexagon class
                 elif not self.layout[hexcount] % 2 == 0: #basically if it's an odd number... which means a district
                     h = FillHexagon(self.can,
-                                    c * (size * 1.5),
+                                    c * (size * 1.5)+17,
                                     (r * (size * sqrt(3))) + offset,
                                     size,
                                 "#778899",
@@ -388,7 +408,7 @@ class Main(Tk):
 
                 elif self.editing:
                     h = FillHexagon(self.can,
-                                    c * (size * 1.5),
+                                    c * (size * 1.5)+17,
                                     (r * (size * sqrt(3))) + offset,
                                     size,
                                     "#a1e2a1",
@@ -405,11 +425,11 @@ class Main(Tk):
                 if not self.layout[hexcount]  % 2 == 0:
                     districtnum += 1
                     print (districtnum)
-                    self.can.create_text(c * (size * 1.5) + (size / 2),
+                    self.can.create_text(c * (size * 1.5) + (size / 2)+17,
                                      (r * (size * sqrt(3))) + offset + 10 + (size / 2),
                                      justify=CENTER,
                                      text=(self.district_type_feature[districtnum - 1][0]))
-
+        """
 
     #wipes out the list of hexagon objects and draws a rectangle over the canvas.
     def clear_grid(self):
