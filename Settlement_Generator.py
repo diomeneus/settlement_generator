@@ -1,5 +1,6 @@
 from tkinter import *
-from math import cos, sin, sqrt, radians
+from math import cos, sin, sqrt, radians, floor
+import math
 import random
 import os
 import sqlite3
@@ -172,7 +173,6 @@ class Main(Tk):
             count[11] =  NAMING: elven prefix, center and suffix count
             count[12] =  NAMING: halfling prefix and suffix
             count[13] =  NAMING: orcish prefix and suffix
-
         """
         # create a database connection
         database = "..\DB\settlement_generator.db"
@@ -216,7 +216,6 @@ class Main(Tk):
             offset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases constantly.
             x, y = evt.x, evt.y
             clicked = self.can.find_closest(x, y)[0]  # find closest
-
             if self.hexagons[int(clicked) - offset].coastal:
                 self.hexagons[int(clicked) - offset].coastal = False
             else:
@@ -266,28 +265,91 @@ class Main(Tk):
         #self.key_empty() #new inits wipe i'm pretty sure
         if self.editing:
             self.editing = False
+            self.can.config(background="#fffafa")
             #self.hex_control_frame.pack()
             print ("\nSwitched to generator")
             self.generate(7)  # default 7 hex size
         else:
             self.editing = True
+            self.can.config(background="#a1e2a1")
             #self.hex_control_frame.forget()
             print ("\nSwitched to layout editor")
-            self.init_grid([], 10, 7, 30)
+            self.init_grid([],[],[], 10, 7, 30)
 
     def generate_name (self, locks, type, length):
         self.settlementname.set("test text")
-        #print("\nNEW NAMES BITCHESSSSS\n")
 
     #Generates the random values for building the settlement
     def generate (self, generate_size):
-        if not self.editing:
+        with self.conn:
+            for x in range(54):
+                converted = []
+                # print("Max rolls for each table: ",self.count)
+                settlement_layout = self.valuenames(self.conn, "layout", "layout_id", str(x+1))
+                # splits the layout list into a proper integer list and sends it to be populated.
+                layout_hexes = [0] * 3  # * (coastal+river+1)
+
+                coastals = settlement_layout[2].split(':')
+                layout_hexes[0] = coastals[0].split('.')
+                if len(coastals) > 1:
+                    layout_hexes[1] = coastals[1].split('.')
+                for a in range(2):
+                    #print (layout_hexes[a])
+                    if not layout_hexes[a] == 0:
+                        for d in range(len(layout_hexes[a])):
+                            layout_hexes[a][d] = int(layout_hexes[a][d])
+                            #convert here
+                            rounded = math.floor((layout_hexes[a][d]) / 7)
+                            remains = ((layout_hexes[a][d])%7)
+                            total = [rounded,remains]
+                            converted.append(total)
+                            #print (rounded)
+                            #print ((layout_hexes[a][d])/7)
+                            #print ((layout_hexes[a][d])%7)
+
+                if layout_hexes[1] ==0:
+                    print ("")
+                    #print(converted)#layout_hexes[0])
+                else:
+                    print(converted[0:7])#,"   coast: ", converted[8:])
+
+                # print(settlement_theme[1], " ", settlement_feature[1], " ", settlement_layout[1], " ",layout_hexes[0])
+
+
+        #init grid section
+        size=30
+        self.clear_grid()
+        n = -1
+        for c in range(10):
+            if c % 2 == 0:
+                offset = size * sqrt(3) / 2  # every even column is offset by the size
+            else:
+                offset = 0  # self.vstart #initial offset from border
+            for r in range(7):
+                n+=1
+                h = FillHexagon(self.can,
+                                c * (size * 1.5) + 17,
+                                (r * (size * sqrt(3))) + offset,
+                                size,
+                                "#a1e2a1",
+                                "#111111",
+                                "{}.{}".format(r, c))
+                self.hexagons.append(h)
+                self.can.create_text(c * (size * 1.5) + (size / 2),
+                                 (r * (size * sqrt(3))) + offset + (size / 2),
+                                 text="{}, {}".format(r, c)+"\n"+str(n))
+
+        #commit
+
+        #self.init_grid(layout_hexes[0],layout_hexes[1],layout_hexes[2], 10, 7, 30)
+
+        """if not self.editing:
             self.district_type_feature = [[0, 0] for _ in range(generate_size)]#makes a nested list of 2, times how many districts there are
             settlement_value=[0]*3
             #generates the values for the settlement theme, feature and layout.
             for x in range(3):
                 settlement_value[x]=(random.randint(1, self.count[x]))#self.count[x]+1)) change 6 to the commented text when you have more layouts.
-            """temporarily just random 1-10 layout or a specific layout. Delete me"""
+            #temporarily just random 1-10 layout or a specific layout. Delete me
             settlement_value[2]=56#(random.randint(1, 50)) #56 is our tester
 
             #generates the values for the districts and their features
@@ -297,7 +359,7 @@ class Main(Tk):
                 settlement_feature = self.valuenames(self.conn, "settlement_feature", "set_feature_id", str(settlement_value[1]))
                 settlement_layout = self.valuenames(self.conn, "layout", "layout_id", str(settlement_value[2]))
                 # splits the layout list into a proper integer list and sends it to be populated.
-                """ layout_hexes is going bye bye """
+                #layout_hexes is going bye bye
                 layout_hexes = [0] * 3  # * (coastal+river+1)
 
                 river = settlement_layout[2].split('r')
@@ -326,39 +388,66 @@ class Main(Tk):
                     self.district_type_feature[x][0] = value
                     value = self.valuenames(self.conn, "district_feature", "district_feature_id",str(random.randint(1, self.count[4])))[1]
                     self.district_type_feature[x][1] = value
-                    #print("District ",x+1,self.district_type_feature[x])
+                    print("District ",x+1,self.district_type_feature[x])
             #self.init_grid(layout_hexes, 10, 7, 30)
             sampleDBdistrict = "[[1, 4], [2, 3], [2, 4], [2, 5], [3, 3], [3, 4], [3, 5]]"
             sampleDBcoastal = "[[0, 4], [1, 2], [1, 3], [1, 5], [2, 2]]"
-            sampleDBriver = StringVar()
-            print (sampleDBriver)
+            sampleDBriver = "[[1, 4, 1, 2, 3], [2, 4, 1, 2, 3, 4], [3, 4, 5]]"
+
             districts = ast.literal_eval(sampleDBdistrict)
             coastal = ast.literal_eval(sampleDBcoastal)
-            #rivers = ""
-            print (districts)
-            print (districts[0])
+            rivers = ast.literal_eval(sampleDBriver)
+            #find max x and max y and throw in either an exception or make the grid bigger
             self.init_grid(districts,coastal,river,10,7,30)
+            """
 
     #Draws a hex grid from the parameters sent
     def init_grid(self, layout_districts,layout_coastal,layout_river, cols, rows, size):
         self.clear_grid()
-        x=-1
-        for i in layout_districts:
-            x+=1
-            if layout_districts[x][0] % 2 == 0: offset = size * sqrt(3) / 2
-            else: offset = 0
-            h = FillHexagon(self.can,
-                            layout_districts[x][0] * (size * 1.5) + 17,
-                            (layout_districts[x][1] * (size * sqrt(3))) + offset,
-                            size,
-                            "#778899",
-                            "#111111",
-                            "{}.{}".format(layout_districts[x][1],layout_districts[x][0]))  # ,"hex")) #SEND THE HEX TAG HERE
-            self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
+        n=-1
+        if self.editing:
+            for c in range(cols):
+                if c % 2 == 0:
+                    offset = size * sqrt(3) / 2  # every even column is offset by the size
+                else:
+                    offset = 0  # self.vstart #initial offset from border
+                for r in range(rows):
+                    h = FillHexagon(self.can,
+                                    c * (size * 1.5) + 17,
+                                    (r * (size * sqrt(3))) + offset,
+                                    size,
+                                    "#a1e2a1",
+                                    "#111111",
+                                    "{}.{}".format(r, c))
+                    self.hexagons.append(h)
+                    #self.can.create_text(c * (size * 1.5) + (size / 2),
+                    #                 (r * (size * sqrt(3))) + offset + (size / 2),
+                    #                 text="{}, {}".format(r, c))
+
+        else:
+            for i in layout_districts:
+                n+=1
+                print("n: ", i)
+                if i[1] % 2 == 0: offset = size * sqrt(3) / 2
+                else: offset = 0
+                h = FillHexagon(self.can,
+                                i[1] * (size * 1.5) + 17,
+                                (i[0] * (size * sqrt(3))) + offset,
+                                size,
+                                "#778899",
+                                "#111111",
+                                "{}.{}".format(i[1],i[0]))  # ,"hex")) #SEND THE HEX TAG HERE
+                self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
+                self.can.create_text(i[1] * (size * 1.5) + (size / 2) + 17,
+                                     (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
+                                     justify=CENTER,
+                                     text=(self.district_type_feature[n][0]))
+
+
+        print (self.hexagons)
 
 
         """OLD CODE"""
-
         """
         for x in range(cols*rows):
             self.layout[x]=0 #resets the hex array to 0
@@ -377,7 +466,6 @@ class Main(Tk):
             self.can.config(background="#fffafa")
             print (self.layout)
         #big endian binary coding: 1111   1= district, 2= coast, 4=river, 8=?,
-
         districtnum = 0
         hexcount = -1
         for c in range(cols):
@@ -405,7 +493,6 @@ class Main(Tk):
                     self.hexagons.append(h) #list of hexagon objects created by fillhexagon class
                 elif self.layout[hexcount] == 3:
                     print("42")
-
                 elif self.editing:
                     h = FillHexagon(self.can,
                                     c * (size * 1.5)+17,
@@ -415,20 +502,8 @@ class Main(Tk):
                                     "#111111",
                                     "{}.{}".format(r, c))
                     self.hexagons.append(h)
-
         hexcount = -1
-        for c in range(cols):
-            if c % 2 == 0: offset = size * sqrt(3) / 2 # every even column is offset by the size
-            else: offset = 0 #self.vstart #initial offset from border
-            for r in range(rows):
-                hexcount += 1
-                if not self.layout[hexcount]  % 2 == 0:
-                    districtnum += 1
-                    print (districtnum)
-                    self.can.create_text(c * (size * 1.5) + (size / 2)+17,
-                                     (r * (size * sqrt(3))) + offset + 10 + (size / 2),
-                                     justify=CENTER,
-                                     text=(self.district_type_feature[districtnum - 1][0]))
+       
         """
 
     #wipes out the list of hexagon objects and draws a rectangle over the canvas.
