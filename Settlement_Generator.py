@@ -8,8 +8,9 @@ import ast
 
 from sqlite3 import Error
 
+
 class DrawRiver:
-    def __init__(self, parent, nodes,x,y,length, color,tags):
+    def __init__(self, parent, nodes, x, y, length, color, tags):
         self.parent = parent  # canvas
         self.start_x = x  # top left x
         self.start_y = y  # top left y
@@ -39,6 +40,7 @@ class DrawRiver:
                                    coordinates[5][1],
                                    fill=self.color,
                                    tags=self.tags)
+
 
 class FillHexagon:
     def __init__(self, parent, x, y, length, color, border, tags):
@@ -87,7 +89,6 @@ class Main(Tk):
         self.settlementname = StringVar()
         self.editorbrush = StringVar()
 
-
         """Setting up our frames, titles and UI"""
         self.title("Settlement Generator")
         menubar = Menu(self)
@@ -109,18 +110,17 @@ class Main(Tk):
 
         self.config(menu=menubar)
 
-        #setting up our frames
-        hex_control_frame = Frame(self,width=200)#, justify=LEFT)
+        # setting up our frames
+        hex_control_frame = Frame(self, width=200)  # , justify=LEFT)
         hex_control_frame.pack(side=LEFT)
         hex_display_frame = Frame(self)
         hex_display_frame.pack()
 
-
         Label(hex_control_frame, text="Controls").pack()
         Label(hex_control_frame, textvariable=self.settlementname).pack()
-        Label (hex_control_frame, textvariable=self.editorbrush).pack()
-        btn_genname = Button(hex_control_frame, text="Generate Name", command=self.generate_name(0,"generic","short"))
-        btn_commit = Button(hex_control_frame,text="Commit",command=self.key_commit)
+        Label(hex_control_frame, textvariable=self.editorbrush).pack()
+        btn_genname = Button(hex_control_frame, text="Generate Name", command=self.generate_name(0, "generic", "short"))
+        btn_commit = Button(hex_control_frame, text="Commit", command=self.key_commit)
         btn_clear = Button(hex_control_frame, text="Clear", command=self.key_empty)
 
         e1 = Entry(hex_control_frame, width=10)
@@ -139,7 +139,6 @@ class Main(Tk):
         btn_clear.pack()
         e1.pack()
 
-
         self.can = Canvas(hex_display_frame, width=465, height=385, bg="#fffafa")
         self.can.pack()
         """Assigning controls"""
@@ -148,7 +147,7 @@ class Main(Tk):
         self.can.bind("<Button-3>", self.rclick)
         self.can.bind("c", self.key_commit)
         self.can.bind("e", self.key_empty)
-        self.can.focus_set() #keyboard controls won't work unless the window is set to focussed
+        self.can.focus_set()  # keyboard controls won't work unless the window is set to focussed
 
         """Declaration of variables and database connections"""
         self.vstart = 0  # 60
@@ -156,8 +155,8 @@ class Main(Tk):
         self.hexagons = [0] * 7
         self.district_type_feature = []
         self.editing = False
-        #count will contain the max row count of each table, which becomes out max limit on our randomization
-        self.count = [0]*14
+        # count will contain the max row count of each table, which becomes out max limit on our randomization
+        self.count = [0] * 14
         """
             count[0] = theme count
             count[1] = settlement feature count
@@ -178,40 +177,37 @@ class Main(Tk):
         database = "..\DB\settlement_generator.db"
         self.conn = self.create_connection(database)
         self.count = self.rowcounts(self.conn)  # counts the max rowlength for each table.
-        #with self.conn:
+        # with self.conn:
 
-        #initializes an array of 49 for the grid and populates it with 0
-        self.layout = [0]*70
+        # initializes an array of 49 for the grid and populates it with 0
+        self.layout = [0] * 70
 
-        self.generate(int(e1.get())) #initial call
+        self.generate(int(e1.get()))  # initial call
         self.can.bind("<Button-1>", self.click)
 
     def hexpaint(self):
         for i in self.hexagons:  # re-configure district only
-            self.can.itemconfigure(i.tags, fill="#a1e2a1")
+            self.can.itemconfig(i.tags, fill="#a1e2a1")
             if i.district:
-                self.can.itemconfigure(i.tags, fill="#53ca53")
-            if i.coastal:
-                self.can.itemconfigure(i.tags, fill="#0000FF")
-            if i.coastal and i.district:
-                self.can.itemconfigure(i.tags, fill="#00FFFF")
+                self.can.itemconfig(i.tags, fill="#53ca53")
+            if i.coastal: self.can.itemconfig(i.tags, fill="#0000FF")
+            if i.coastal and i.district: self.can.itemconfig(i.tags, fill="#00FFFF")
 
     def click(self, evt):
         if self.editing:
-            offset = self.can.find_all()[0] #returns the ID of the first object on the canvas as it increases constantly.
+            offset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases cnstly.
             x, y = evt.x, evt.y
-            #clicked equals the ID of the closest canvas object converted to an integer, then subtracted by the offest (the starting object ID on the canvas)
-            clicked = int(self.can.find_closest(x, y)[0])-offset
+            # clicked equals the ID of the closest canvas object converted to an integer, then subtracted by the offest (the starting object ID on the canvas)
+            clicked = int(self.can.find_closest(x, y)[0]) - offset
             brush = self.editorbrush.get()
             if brush == "district": self.hexagons[clicked].district = not self.hexagons[clicked].district
             if brush == "coastal": self.hexagons[clicked].coastal = not self.hexagons[clicked].coastal
-            if brush == "river":
-                self.hexagons[clicked].river = not self.hexagons[clicked].river
+            if brush == "river": self.hexagons[clicked].river = not self.hexagons[clicked].river
 
             self.hexpaint()
 
     def mclick(self, evt):
-        print ("I used to do stuff. Now I do not. For soothe!")
+        print("I used to do stuff. Now I do not. For soothe!")
         """if self.editing:
             offset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases constantly.
             x, y = evt.x, evt.y
@@ -225,9 +221,10 @@ class Main(Tk):
 
     def rclick(self, evt):
         if self.editing:
-            offset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases constantly.
+            offset = self.can.find_all()[
+                0]  # returns the ID of the first object on the canvas as it increases constantly.
             x, y = evt.x, evt.y
-            clicked = int(self.can.find_closest(x, y)[0])-offset  # find closest
+            clicked = int(self.can.find_closest(x, y)[0]) - offset  # find closest
             self.hexagons[clicked].district = False
             self.hexagons[clicked].coastal = False
             self.hexagons[clicked].river = False
@@ -241,116 +238,58 @@ class Main(Tk):
                 i.river = False
             self.hexpaint()
 
-    def key_commit(self,event=None):
+    def key_commit(self, event=None):
         if self.editing:
-            layoutstr = ""
+            districtstr = ""
             coaststr = ""
+            riverstr = ""
             for i, o in enumerate(self.hexagons):  # re-configure district only
                 if o.district:
-                    layoutstr = layoutstr + str(i) + "."
+                    districtstr += ", "+ str(o.tags)
                 if o.coastal:
-                    coaststr = coaststr + str(i) + "."
-            if coaststr != "":
-                layoutstr = layoutstr[0:-1]
-                layoutstr = layoutstr + ":" + coaststr
-            layoutstr = layoutstr[0:-1]
+                    coaststr += ", "+ str(o.tags)
+            districtstr = "["+districtstr[2:]+"]"
+            coaststr = "["+coaststr[2:]+"]"
+            #if coaststr != "":
+            #    layoutstr = layoutstr[0:-1]
+            #    layoutstr = layoutstr + ":" + coaststr
+            #layoutstr = layoutstr[0:-1]
 
-            print(layoutstr)
+            print("District Layout: ", districtstr)
+            print("Coastal Layout: ", coaststr)
+            print("Rivers Layout: ", riverstr)
 
-    def brushswap (self,brush):
-        #print ("\nset brush to "+brush)
+    def brushswap(self, brush):
         self.editorbrush.set(brush)
 
-    def swapeditor (self):
-        #self.key_empty() #new inits wipe i'm pretty sure
+    def swapeditor(self):
+        # self.key_empty() #new inits wipe i'm pretty sure
         if self.editing:
             self.editing = False
             self.can.config(background="#fffafa")
-            #self.hex_control_frame.pack()
-            print ("\nSwitched to generator")
+            # self.hex_control_frame.pack()
+            print("\nSwitched to generator")
             self.generate(7)  # default 7 hex size
         else:
             self.editing = True
             self.can.config(background="#a1e2a1")
-            #self.hex_control_frame.forget()
-            print ("\nSwitched to layout editor")
-            self.init_grid([],[],[], 10, 7, 30)
+            # self.hex_control_frame.forget()
+            print("\nSwitched to layout editor")
+            self.init_grid([], [], [], 10, 7, 30)
 
-    def generate_name (self, locks, type, length):
+    def generate_name(self, locks, type, length):
         self.settlementname.set("test text")
 
-    #Generates the random values for building the settlement
-    def generate (self, generate_size):
-        with self.conn:
-            for x in range(54):
-                converted = []
-                # print("Max rolls for each table: ",self.count)
-                settlement_layout = self.valuenames(self.conn, "layout", "layout_id", str(x+1))
-                # splits the layout list into a proper integer list and sends it to be populated.
-                layout_hexes = [0] * 3  # * (coastal+river+1)
-
-                coastals = settlement_layout[2].split(':')
-                layout_hexes[0] = coastals[0].split('.')
-                if len(coastals) > 1:
-                    layout_hexes[1] = coastals[1].split('.')
-                for a in range(2):
-                    #print (layout_hexes[a])
-                    if not layout_hexes[a] == 0:
-                        for d in range(len(layout_hexes[a])):
-                            layout_hexes[a][d] = int(layout_hexes[a][d])
-                            #convert here
-                            rounded = math.floor((layout_hexes[a][d]) / 7)
-                            remains = ((layout_hexes[a][d])%7)
-                            total = [rounded,remains]
-                            converted.append(total)
-                            #print (rounded)
-                            #print ((layout_hexes[a][d])/7)
-                            #print ((layout_hexes[a][d])%7)
-
-                if layout_hexes[1] ==0:
-                    print ("")
-                    #print(converted)#layout_hexes[0])
-                else:
-                    print(converted[0:7])#,"   coast: ", converted[8:])
-
-                # print(settlement_theme[1], " ", settlement_feature[1], " ", settlement_layout[1], " ",layout_hexes[0])
-
-
-        #init grid section
-        size=30
-        self.clear_grid()
-        n = -1
-        for c in range(10):
-            if c % 2 == 0:
-                offset = size * sqrt(3) / 2  # every even column is offset by the size
-            else:
-                offset = 0  # self.vstart #initial offset from border
-            for r in range(7):
-                n+=1
-                h = FillHexagon(self.can,
-                                c * (size * 1.5) + 17,
-                                (r * (size * sqrt(3))) + offset,
-                                size,
-                                "#a1e2a1",
-                                "#111111",
-                                "{}.{}".format(r, c))
-                self.hexagons.append(h)
-                self.can.create_text(c * (size * 1.5) + (size / 2),
-                                 (r * (size * sqrt(3))) + offset + (size / 2),
-                                 text="{}, {}".format(r, c)+"\n"+str(n))
-
-        #commit
-
-        #self.init_grid(layout_hexes[0],layout_hexes[1],layout_hexes[2], 10, 7, 30)
-
-        """if not self.editing:
+    # Generates the random values for building the settlement
+    def generate(self, generate_size):
+        if not self.editing:
             self.district_type_feature = [[0, 0] for _ in range(generate_size)]#makes a nested list of 2, times how many districts there are
             settlement_value=[0]*3
             #generates the values for the settlement theme, feature and layout.
             for x in range(3):
                 settlement_value[x]=(random.randint(1, self.count[x]))#self.count[x]+1)) change 6 to the commented text when you have more layouts.
             #temporarily just random 1-10 layout or a specific layout. Delete me
-            settlement_value[2]=56#(random.randint(1, 50)) #56 is our tester
+            settlement_value[2]=19 #test a specific layout
 
             #generates the values for the districts and their features
             with self.conn:
@@ -358,53 +297,29 @@ class Main(Tk):
                 settlement_theme = self.valuenames(self.conn, "theme", "theme_id", str(settlement_value[0]))
                 settlement_feature = self.valuenames(self.conn, "settlement_feature", "set_feature_id", str(settlement_value[1]))
                 settlement_layout = self.valuenames(self.conn, "layout", "layout_id", str(settlement_value[2]))
-                # splits the layout list into a proper integer list and sends it to be populated.
-                #layout_hexes is going bye bye
-                layout_hexes = [0] * 3  # * (coastal+river+1)
-
-                river = settlement_layout[2].split('r')
-                coastals =river[0].split(':')
-                layout_hexes[0]=coastals[0].split('.')
-                if len(river)>1:
-                    layout_hexes[2] = river[1].split('.')
-                    for x in range(len(layout_hexes[2])):
-                        layout_hexes[2][x] = layout_hexes[2][x].split('-')
-                        for z in range(len(layout_hexes[2][x])):
-                            layout_hexes[2][x][z] = int(layout_hexes[2][x][z])
-                if len(coastals)>1:
-                    layout_hexes[1] = coastals[1].split('.')
-                for a in range(2):
-                    for x in range(len(layout_hexes[a])):
-                        layout_hexes[a][x] = int(layout_hexes[a][x])
-
-                #print("river: ", layout_hexes[2])
-                #print("coastal: ", layout_hexes[1])
-                #print("district: ", layout_hexes[0])
-
+                #print (settlement_layout)
+                districts = ast.literal_eval(settlement_layout[2])
+                if not settlement_layout[3] is None: coastals = ast.literal_eval(settlement_layout[3])
+                else: coastals = None
+                if not settlement_layout[4] is None: rivers = ast.literal_eval(settlement_layout[4])
+                else: rivers = None
                 #print(settlement_theme[1], " ", settlement_feature[1], " ", settlement_layout[1], " ",layout_hexes[0])
 
-                for x in range(len(layout_hexes[0])):
+                for x in range(len(districts)):
                     value=self.valuenames(self.conn, "district_type", "district_type_id", str(random.randint(1, self.count[3])))[1]
                     self.district_type_feature[x][0] = value
                     value = self.valuenames(self.conn, "district_feature", "district_feature_id",str(random.randint(1, self.count[4])))[1]
                     self.district_type_feature[x][1] = value
                     print("District ",x+1,self.district_type_feature[x])
-            #self.init_grid(layout_hexes, 10, 7, 30)
-            sampleDBdistrict = "[[1, 4], [2, 3], [2, 4], [2, 5], [3, 3], [3, 4], [3, 5]]"
-            sampleDBcoastal = "[[0, 4], [1, 2], [1, 3], [1, 5], [2, 2]]"
-            sampleDBriver = "[[1, 4, 1, 2, 3], [2, 4, 1, 2, 3, 4], [3, 4, 5]]"
 
-            districts = ast.literal_eval(sampleDBdistrict)
-            coastal = ast.literal_eval(sampleDBcoastal)
-            rivers = ast.literal_eval(sampleDBriver)
             #find max x and max y and throw in either an exception or make the grid bigger
-            self.init_grid(districts,coastal,river,10,7,30)
-            """
+            self.init_grid(districts,coastals,rivers,10,7,30)
 
-    #Draws a hex grid from the parameters sent
-    def init_grid(self, layout_districts,layout_coastal,layout_river, cols, rows, size):
+
+    # Draws a hex grid from the parameters sent
+    def init_grid(self, layout_districts, layout_coastal, layout_river, cols, rows, size):
         self.clear_grid()
-        n=-1
+
         if self.editing:
             for c in range(cols):
                 if c % 2 == 0:
@@ -418,33 +333,51 @@ class Main(Tk):
                                     size,
                                     "#a1e2a1",
                                     "#111111",
-                                    "{}.{}".format(r, c))
+                                    "[{},{}]".format(r, c))
                     self.hexagons.append(h)
-                    #self.can.create_text(c * (size * 1.5) + (size / 2),
+                    # self.can.create_text(c * (size * 1.5) + (size / 2),
                     #                 (r * (size * sqrt(3))) + offset + (size / 2),
                     #                 text="{}, {}".format(r, c))
 
         else:
-            for i in layout_districts:
-                n+=1
-                print("n: ", i)
-                if i[1] % 2 == 0: offset = size * sqrt(3) / 2
-                else: offset = 0
+            n = -1
+            for i in layout_coastal: #i should be a 2 item list of X and Y of the hex
+                n += 1
+                if i[1] % 2 == 0:
+                    offset = size * sqrt(3) / 2
+                else:
+                    offset = 0
+                h = FillHexagon(self.can,
+                                i[1] * (size * 1.5) + 17,
+                                (i[0] * (size * sqrt(3))) + offset,
+                                size,
+                                "#9FB6CD",
+                                "#DBDBDB",
+                                "[{},{}]".format(i[1], i[0]))
+                self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
+                self.can.create_text(i[1] * (size * 1.5) + (size / 2) + 17,
+                                     (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
+                                     justify=CENTER)
+            n = -1
+            for i in layout_districts: #i should be a 2 item list of X and Y of the hex
+                n += 1
+                if i[1] % 2 == 0:
+                    offset = size * sqrt(3) / 2
+                else:
+                    offset = 0
                 h = FillHexagon(self.can,
                                 i[1] * (size * 1.5) + 17,
                                 (i[0] * (size * sqrt(3))) + offset,
                                 size,
                                 "#778899",
                                 "#111111",
-                                "{}.{}".format(i[1],i[0]))  # ,"hex")) #SEND THE HEX TAG HERE
+                                "[{},{}]".format(i[1], i[0]))
                 self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
                 self.can.create_text(i[1] * (size * 1.5) + (size / 2) + 17,
                                      (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
                                      justify=CENTER,
                                      text=(self.district_type_feature[n][0]))
 
-
-        print (self.hexagons)
 
 
         """OLD CODE"""
@@ -503,19 +436,19 @@ class Main(Tk):
                                     "{}.{}".format(r, c))
                     self.hexagons.append(h)
         hexcount = -1
-       
+
         """
 
-    #wipes out the list of hexagon objects and draws a rectangle over the canvas.
+    # wipes out the list of hexagon objects and draws a rectangle over the canvas.
     def clear_grid(self):
         self.can.delete("all")
         self.hexagons.clear()
 
-    #supposed to clear the output window.
+    # supposed to clear the output window.
     def cls(self):
-        os.system('cls')# if os.name == 'nt' else 'clear')
+        os.system('cls')  # if os.name == 'nt' else 'clear')
 
-    #create a database connection to the SQLite database specified by the db_file
+    # create a database connection to the SQLite database specified by the db_file
     def create_connection(self, db_file):
         try:
             conn = sqlite3.connect(db_file)
@@ -559,13 +492,14 @@ class Main(Tk):
 
         return self.count
 
-    def valuenames(self, conn, table,column, value):
+    def valuenames(self, conn, table, column, value):
         cur = conn.cursor()
-        statement = ("SELECT * FROM "+table+" WHERE "+column+" = "+value)
+        statement = ("SELECT * FROM " + table + " WHERE " + column + " = " + value)
         cur.execute(statement)
         return cur.fetchone()
 
-#As far as I can tell this is a pythony secure way to launch the main loop.
+
+# As far as I can tell this is a pythony secure way to launch the main loop.
 if __name__ == "__main__":
     app = Main()
     mainloop()
