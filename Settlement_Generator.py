@@ -1,12 +1,13 @@
 from tkinter import *
+#import tkinter as tk
 from math import cos, sin, sqrt, radians, floor
 import math
 import random
 import os
 import sqlite3
 import ast
-
 from sqlite3 import Error
+
 class RiverNode:
     def __init__(self, parent, x, y, x2, y2, outline, color):#, tags):
         self.rparent = parent  # canvas
@@ -25,8 +26,6 @@ class RiverNode:
                               self.ry2,
                               outline = self.routline,
                               fill= self.rcolor)
-
-
 
 class DrawRiver:
     def __init__(self, parent, x, y, x2,y2, color, tags):
@@ -87,6 +86,54 @@ class FillHexagon:
                                    outline=border,
                                    tags=self.tags)
 
+class Controls_Editor(Frame):
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        btn_editor = Button(self, text="Generator", command=lambda: [self.controller.swapeditor(),controller.show_frame("Controls_Generator")])
+        btn_editor.pack()
+        Label(self,text = "").pack()
+        btn_commit = Button(self, text="Print Layout", command=lambda: self.key_commit)
+        btn_clear = Button(self, text="Clear Layout", command=lambda: self.key_empty)
+        btn_commit.pack()
+        btn_clear.pack()
+
+        labelframe = LabelFrame(self, text="Brush")
+        labelframe.pack(fill="both", expand="yes")
+        brush_district = Button(labelframe, text="District", command=lambda: self.controller.brushswap("district"))
+        brush_coastal = Button(labelframe, text="Coastal", command=lambda: self.controller.brushswap("coastal"))
+        brush_river = Button(labelframe, text="River", command=lambda: self.controller.brushswap("river"))
+#highlist the selected brush
+        brush_district.pack()
+        brush_coastal.pack()
+        brush_river.pack()
+
+        #btn_river = Button(self, text="River Maker", command=lambda: self.rivereditor())
+        #btn_river.pack()
+
+
+
+class Controls_Generator(Frame):
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        btn_editor = Button(self, text="Layout Editor", command=lambda: [self.controller.swapeditor(),controller.show_frame("Controls_Editor")])
+        btn_editor.pack()
+
+        # Label(hex_control_frame, textvariable=self.settlementname).pack()
+        # Label(hex_control_frame, textvariable=self.editorbrush).pack()
+        labelframe = LabelFrame(self, text="Generate")
+        labelframe.pack(fill="both", expand="yes")
+
+        btn_genname = Button(labelframe, text="Name", command=lambda: self.controller.generate_name(0, "generic", "short"))
+        btn_genlayout = Button(labelframe, text="Layout", command=lambda: self.controller.generate(7, True))
+        btn_gendistricts = Button(labelframe, text="Districts", command=lambda: self.controller.generate(7,False))
+        btn_genname.pack()
+        btn_genlayout.pack()
+        btn_gendistricts.pack()
+
+
+
 # ---------------------------------------------------------
 class Main(Tk):
     def __init__(self):
@@ -109,28 +156,45 @@ class Main(Tk):
         optionsmenu.add_checkbutton(label="Check", onvalue=True, offvalue=False, variable=show_all)
         menubar.add_cascade(label="Options", menu=optionsmenu)
 
-        menubar.add_command(label="Generate", command=lambda: self.generate(int(e1.get())))
+        menubar.add_command(label="Generate", command=lambda: self.generate(7,True))#int(e1.get())))
         menubar.add_separator()
         menubar.add_command(label="Layout Editor", command=self.swapeditor)#(10,7,30))
 
         self.config(menu=menubar)
 
         # setting up our frames
-        hex_control_frame = Frame(self, width=200)  # , justify=LEFT)
-        hex_control_frame.pack(side=LEFT)
+        container = Frame(self)
+        container.pack(side="left", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        self.frames = {}
+        for F in (Controls_Editor, Controls_Generator):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self)
+            self.frames[page_name] = frame
+
+            # put all of the pages in the same location;
+            # the one on the top of the stacking order
+            # will be the one that is visible.
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        self.show_frame("Controls_Generator")
+        #hex_control_frame = Frame(self, width=200)  # , justify=LEFT)
+        #hex_control_frame.pack(side=LEFT)
         hex_display_frame = Frame(self)
         hex_display_frame.pack()
 
-        Label(hex_control_frame, text="Controls").pack()
-        Label(hex_control_frame, textvariable=self.settlementname).pack()
-        Label(hex_control_frame, textvariable=self.editorbrush).pack()
-        btn_river = Button(hex_control_frame, text="River Maker", command=lambda: self.rivereditor())
-        btn_genname = Button(hex_control_frame, text="Generate Name", command=lambda: self.generate_name(0, "generic", "short"))
-        btn_commit = Button(hex_control_frame, text="Commit", command=self.key_commit)
-        btn_clear = Button(hex_control_frame, text="Clear", command=self.key_empty)
+        #Label(hex_control_frame, text="Controls").pack()
+        #Label(hex_control_frame, textvariable=self.settlementname).pack()
+        #Label(hex_control_frame, textvariable=self.editorbrush).pack()
+        #btn_river = Button(hex_control_frame, text="River Maker", command=lambda: self.rivereditor())
+        #btn_genname = Button(hex_control_frame, text="Generate Name", command=lambda: self.generate_name(0, "generic", "short"))
+        #btn_commit = Button(hex_control_frame, text="Commit", command=self.key_commit)
+        #btn_clear = Button(hex_control_frame, text="Clear", command=self.key_empty)
 
-        e1 = Entry(hex_control_frame, width=10)
-        e1.insert(END, "7")
+        #e1 = Entry(hex_control_frame, width=10)
+        #e1.insert(END, "7")
         self.brushswap("district")
 
         """
@@ -141,11 +205,11 @@ class Main(Tk):
         have a button for a name rework where is just moves minor bits
         """
 
-        btn_river.pack()
-        btn_genname.pack()
-        btn_commit.pack()
-        btn_clear.pack()
-        e1.pack()
+        #btn_river.pack()
+        #btn_genname.pack()
+        #btn_commit.pack()
+        #btn_clear.pack()
+        #e1.pack()
 
         self.can = Canvas(hex_display_frame, width=465, height=385, bg="#fffafa")
         self.can.pack()
@@ -195,7 +259,7 @@ class Main(Tk):
         #pretty confident I don't need this anymore. and if i do find where and fix it
         self.layout = [0] * 70
 
-        self.generate(int(e1.get()))  # initial call
+        self.generate(7,True)#(int(e1.get()))  # initial call
         self.can.bind("<Button-1>", self.click)
 
         self.settlementname.set("test text")
@@ -203,6 +267,12 @@ class Main(Tk):
         self.prefix = ""
         self.center = ""
         self.suffix = ""
+    def show_frame(self, page_name):
+        '''Show a frame for the given page name'''
+        frame = self.frames[page_name]
+        frame.tkraise()
+
+
 
     def hexpaint(self):
         for i in self.hexagons:  # re-configure district only
@@ -217,11 +287,26 @@ class Main(Tk):
         clicked = int(self.can.find_closest(x, y)[0]) - offset
         rawclicked = self.can.find_closest(x, y)[0]
         brush = self.editorbrush.get()
+        coord = self.hexagons[clicked].tags
+        if not self.coastals: self.coastals=[]
         if self.editing and not brush == "river":
+            coord = ast.literal_eval(self.hexagons[clicked].tags)
 
             # clicked equals the ID of the closest canvas object converted to an integer, then subtracted by the offest (the starting object ID on the canvas)
-            if brush == "district": self.hexagons[clicked].district = not self.hexagons[clicked].district
-            if brush == "coastal": self.hexagons[clicked].coastal = not self.hexagons[clicked].coastal
+            if brush == "district" and self.hexagons[clicked].district:
+                self.hexagons[clicked].district = not self.hexagons[clicked].district
+                self.districts.remove(coord)
+                print(self.districts)
+            elif brush == "district" and not self.hexagons[clicked].district:
+                self.hexagons[clicked].district = not self.hexagons[clicked].district
+                self.districts.append(coord)
+            if brush == "coastal" and self.hexagons[clicked].coastal:
+                self.hexagons[clicked].coastal = not self.hexagons[clicked].coastal
+                self.coastals.remove(coord)
+            elif brush == "coastal" and not self.hexagons[clicked].coastal:
+                self.hexagons[clicked].coastal = not self.hexagons[clicked].coastal
+                self.coastals.append(coord)
+        if len(self.coastals) == 0: self.coastals = None
         if brush == "river" and self.can.type(rawclicked) == "oval":
             self.coords["x"] = self.can.bbox(rawclicked)[0]
             self.coords["y"] = self.can.bbox(rawclicked)[1]
@@ -330,10 +415,11 @@ class Main(Tk):
         if state == "show":
             for x in self.rivernodes:
 
-                print("SHOW THE NODES this item", x)
+                nothing = "nothing"
         else:
             for x in self.rivernodes:
-                print("hide this", x)
+                #print("hide this", x)
+                nothing = "nothing"
 
     def swapeditor(self):#, cols, rows, size):
         # self.key_empty() #new inits wipe i'm pretty sure
@@ -347,13 +433,41 @@ class Main(Tk):
             self.can.config(background="#fffafa")
             # self.hex_control_frame.pack()
             print("\nSwitched to generator")
-            self.generate(7)  # default 7 hex size
+            number_of_hexes = len(self.districts)
+            if self.coastals: number_of_hexes+= len(self.coastals)
+            #self.init_grid(self.districts, self.coastals, [], 10, 7, 30)
+            self.generate(number_of_hexes,False)  # default 7 hex size
+            #self.controller.show_frame("controls_generator")
         else:
             self.editing = True
             self.can.config(background="#a1e2a1")
             # self.hex_control_frame.forget()
             print("\nSwitched to layout editor")
             self.init_grid([], [], [], cols, rows, size)
+            #self.controller.show_frame("controls_layout")
+            idoffset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases cnstly.
+            for i in self.districts:  # i should be a 2 item list of X and Y of the hex
+                if i[1] % 2 == 0:
+                    y = i[0] * (size * sqrt(3)) + (size * sqrt(3) / 2) + 25
+                else:
+                    y = i[0] * (size * sqrt(3)) + 25
+                x = i[1] * (size * 1.5) + 30
+
+                clicked = int(self.can.find_closest(x, y)[0]) - idoffset
+                self.hexagons[clicked].district = not self.hexagons[clicked].district
+            if self.coastals:
+                for i in self.coastals:  # i should be a 2 item list of X and Y of the hex
+                    if i[1] % 2 == 0:
+                        y = i[0] * (size * sqrt(3)) + (size * sqrt(3) / 2) + 25
+                    else:
+                        y = i[0] * (size * sqrt(3)) + 25
+                    x = i[1] * (size * 1.5) + 30
+
+                    clicked = int(self.can.find_closest(x, y)[0]) - idoffset
+                    self.hexagons[clicked].coastal = not self.hexagons[clicked].coastal
+            self.hexpaint()
+
+
 
             #draw river nodes
 
@@ -379,41 +493,53 @@ class Main(Tk):
         self.settlementname.set(setname)
 
     # Generates the random values for building the settlement
-    def generate(self, generate_size):
+    def generate_layout(self):
         if not self.editing:
-            self.district_type_feature = [[0, 0] for _ in range(generate_size)]#makes a nested list of 2, times how many districts there are
+            layoutid = random.randint(1, self.count[2])
+            temp = self.valuenames(self.conn, "layout", "layout_id", str(layoutid))
+            #print ("layout:",temp)
+            return temp
+
+    def generate(self, generate_size, dolayout):
+        if not self.editing:
             settlement_value=[0]*3
             #generates the values for the settlement theme, feature and layout.
-            for x in range(3): settlement_value[x]=(random.randint(1, self.count[x]))#self.count[x]+1)) change 6 to the commented text when you have more layouts.
+            for x in range(2): settlement_value[x]=(random.randint(1, self.count[x]))#self.count[x]+1)) change 6 to the commented text when you have more layouts.
             #temporarily just random 1-10 layout or a specific layout. Delete me
-            settlement_value[2]=55 #test a specific layout
-            print ("layout:",settlement_value[2])
+            #settlement_value[2]=55 #test a specific layout
+            #print ("layout:",settlement_value[2])
             #generates the values for the districts and their features
             with self.conn:
                 #print("Max rolls for each table: ",self.count)
                 settlement_theme = self.valuenames(self.conn, "theme", "theme_id", str(settlement_value[0]))
                 settlement_feature = self.valuenames(self.conn, "settlement_feature", "set_feature_id", str(settlement_value[1]))
-                settlement_layout = self.valuenames(self.conn, "layout", "layout_id", str(settlement_value[2]))
+                if dolayout:
+                    self.settlement_layout = self.generate_layout()
+                    self.districts = ast.literal_eval(self.settlement_layout[2])
+                    if self.settlement_layout[3]: self.coastals = ast.literal_eval(self.settlement_layout[3])
+                    else: self.coastals = None
+                    if self.settlement_layout[4]: self.rivers = ast.literal_eval(self.settlement_layout[4])
+                    else: self.rivers = None
+                self.district_type_feature = [[0, 0] for _ in range(len(self.districts))]  # makes a nested list of 2, times how many districts there are
+
                 print (settlement_theme)
                 required_districts = [[],[]]
                 required_districts [0]= ["Ruling","Religious","Law and Order","Military","Governing"] #different forms of governing districts
                 required_districts [1]= ast.literal_eval(settlement_theme[2])
-                districts = ast.literal_eval(settlement_layout[2])
                 #coastals = ast.literal_eval(settlement_layout[3])
-                if not settlement_layout[3] is None: coastals = ast.literal_eval(settlement_layout[3])
-                else: coastals = None
-                if not settlement_layout[4] is None: rivers = ast.literal_eval(settlement_layout[4])
-                else: rivers = None
-                print("\nSettlement "+self.settlementname.get()+":",settlement_theme[1], " ", settlement_feature[1], " ", settlement_layout[1], " ")
+
+
+                print("\nSettlement "+self.settlementname.get()+":",settlement_theme[1], " ", settlement_feature[1], " ", self.settlement_layout[1], " ")
+
 
                 valid = 0
                 just_districts = []
-                for x in range(len(districts)):
+                for x in range(len(self.districts)):
                     #add in list of district ID's .... orrrrrrr check names under required instead of numbers!
-                    if len(districts)-x==2 and not set(just_districts).intersection(required_districts[0]):
+                    if len(self.districts)-x==2 and not set(just_districts).intersection(required_districts[0]):
                         value= random.choice(required_districts[0])
                         print ("Governing District set as",value)
-                    elif len(districts)-x==1 and not set(just_districts).intersection(required_districts[1]):
+                    elif len(self.districts)-x==1 and not set(just_districts).intersection(required_districts[1]):
                         value = random.choice(required_districts[1])
                         print("Thematic District set as", value)
                     else:
@@ -429,7 +555,7 @@ class Main(Tk):
 
 
             #find max x and max y and throw in either an exception or make the grid bigger
-            self.init_grid(districts,coastals,rivers,10,7,30)
+            self.init_grid(self.districts,self.coastals,self.rivers,10,7,30)
 
     # Draws a hex grid from the parameters sent
     def init_grid(self, layout_districts, layout_coastal, layout_river, cols, rows, size):
@@ -482,7 +608,7 @@ class Main(Tk):
             self.rivervisibility("hide")
         else:#if not layout_coastal is None:
             n = -1
-            if not layout_coastal is None:
+            if layout_coastal:
                 for i in layout_coastal: #i should be a 2 item list of X and Y of the hex
                     n += 1
                     if i[1] % 2 == 0:
@@ -497,9 +623,7 @@ class Main(Tk):
                                     "#DBDBDB",
                                     "[{},{}]".format(i[1], i[0]))
                     self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
-                    self.can.create_text(i[1] * (size * 1.5) + (size / 2) + 17,
-                                         (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
-                                         justify=CENTER)
+
             n = -1
             for i in layout_districts: #i should be a 2 item list of X and Y of the hex
                 n += 1
@@ -520,7 +644,7 @@ class Main(Tk):
                                      justify=CENTER,
                                      text=(self.district_type_feature[n][0]))
             n = -1
-            if not layout_river is None:
+            if layout_river:
                 for i in layout_river:  # i should be a 2 item list of X and Y of the hex
                     n += 1
                     if i[1] % 2 == 0:
