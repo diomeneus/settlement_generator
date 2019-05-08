@@ -7,7 +7,8 @@ import os
 import sqlite3
 import ast
 from sqlite3 import Error
-#import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk, ImageFont
+
 
 class RiverNode:
     def __init__(self, parent, x, y, x2, y2, outline, color,tags):
@@ -178,8 +179,9 @@ class Main(Tk):
         height = 385
         self.can = Canvas(displayFrame, width=width, height=height, bg="#fffafa")
         self.can.pack()
-        #self.image = Image.new("RGB", (width,height), white)
-        #self.draw = ImageDraw.Draw(self.image)
+        self.image = Image.new("RGB", (width,height), "white")
+        self.draw = ImageDraw.Draw(self.image)
+
         #Assigning controls
         self.can.bind("<Button-1>", self.click)
         self.bind("<B1-Motion>", self.drag)
@@ -188,33 +190,23 @@ class Main(Tk):
         self.can.bind("<Button-3>", self.rclick)
         self.can.bind("c", self.key_commit)
         self.can.bind("e", self.key_empty)
-        self.can.focus_set()  # keyboard controls won't work unless the window is set to focussed
+        self.can.focus_set()  #focus the window for keyboard controls
 
-        """Declaration of variables and database connections"""
+        #Declaration of variables and database connections
         self.vstart = 0  # 60
         self.hstart = 0  # 150
         self.hexagons = []
         self.rivernodes = []
         self.district_type_feature = []
         self.editing = False
-        # count will contain the max row count of each table, which becomes out max limit on our randomization
-        self.count = [0] * 14
-        """
-            count[0] = theme count
-            count[1] = settlement feature count
-            count[2] = layout count
-            count[3] = district type count
-            count[4] = district features count
-            count[5] = NAMING: generic prefix and center count
-            count[6] =  NAMING: generic suffix count
-            count[7] =  NAMING: good prefix, center and suffix count
-            count[8] =  NAMING: evil prefix, center and suffix count
-            count[9] =  NAMING: magical prefix, center and suffix count
-            count[10] =  NAMING: dwarven prefix, center and suffix count
-            count[11] =  NAMING: elven prefix, center and suffix count
-            count[12] =  NAMING: halfling prefix and suffix
-            count[13] =  NAMING: orcish prefix and suffix
-        """
+        self.count = [0] * 14 #max row of all tables for rolling
+            #count[0] = theme count
+            #count[1] = settlement feature count
+            #count[2] = layout count
+            #count[3] = district type count
+            #count[4] = district features count
+            #count[5-13] = NAMING: generic 5-prefix/center,6-suffix,7-good,8-evil,9-magical,10-dwarven,11-elven,12-halfling,13-orcish
+
         # create a database connection
         database = "..\DB\settlement_generator.db"
         self.conn = self.create_connection(database)
@@ -224,29 +216,176 @@ class Main(Tk):
 
         self.prefix, self.center, self.suffix = "","",""
 
+    def export(self):
+        print ("This should open a saving dialog that can be printed later. PDF?")
+
+    def test(self,arg):
+        print("successful test of the",arg,"command")
+
+    def screengrab(self):
+        size=30
+        self.font=ImageFont.truetype("arial.ttf", 9)
+        if self.coastals:
+            for i in self.coastals:  # i should be a 2 item list of X and Y of the hex
+                if i[1] % 2 == 0:
+                    offset = size * sqrt(3) / 2
+                else:
+                    offset = 0
+                start_x = i[1] * (size * 1.5) + 17
+                start_y = (i[0] * (size * sqrt(3))) + offset
+                length = size
+                color = "#9FB6CD"  # fill color
+
+                angle=60
+                coordinates = []
+                for i in range(6):
+                    end_x = start_x + length * cos(radians(angle * i))
+                    end_y = start_y + length * sin(radians(angle * i))
+                    coordinates.append([start_x, start_y])
+                    start_x = end_x
+                    start_y = end_y
+                self.draw.polygon((coordinates[0][0],
+                                           coordinates[0][1],
+                                           coordinates[1][0],
+                                           coordinates[1][1],
+                                           coordinates[2][0],
+                                           coordinates[2][1],
+                                           coordinates[3][0],
+                                           coordinates[3][1],
+                                           coordinates[4][0],
+                                           coordinates[4][1],
+                                           coordinates[5][0],
+                                           coordinates[5][1]),
+                                           fill=color,
+                                           outline="#DBDBDB")
+        n = -1
+        for i in self.districts:  # i should be a 2 item list of X and Y of the hex
+            n += 1
+            if i[1] % 2 == 0:
+                offset = size * sqrt(3) / 2
+            else:
+                offset = 0
+            start_x = i[1] * (size * 1.5) + 17
+            start_y = (i[0] * (size * sqrt(3))) + offset
+            length = size
+            color = "#778899"  # fill color
+
+            angle = 60
+            coordinates = []
+            for o in range(6):
+                end_x = start_x + length * cos(radians(angle * o))
+                end_y = start_y + length * sin(radians(angle * o))
+                coordinates.append([start_x, start_y])
+                start_x = end_x
+                start_y = end_y
+            self.draw.polygon((coordinates[0][0],
+                               coordinates[0][1],
+                               coordinates[1][0],
+                               coordinates[1][1],
+                               coordinates[2][0],
+                               coordinates[2][1],
+                               coordinates[3][0],
+                               coordinates[3][1],
+                               coordinates[4][0],
+                               coordinates[4][1],
+                               coordinates[5][0],
+                               coordinates[5][1]),
+                              fill=color,
+                              outline="#111111")
+            msglen = self.font.getsize(self.district_type_feature[n][0])
+            self.draw.text((i[1] * (size * 1.5) + (size / 2) + 17-(msglen[0]/2),
+                                 (i[0] * (size * sqrt(3))) + offset + 5 + (size / 2)),
+                                 text=(self.district_type_feature[n][0]),
+                                 fill="black",
+                                 font=self.font)
+        if self.rivers:
+            for i in self.rivers:
+                c1 = i[1]
+                r1 = i[0]
+                c2 = i[3]
+                r2 = i[2]
+                if not c1 % 2 == 0: offset_x1 = 15
+                else: offset_x1 = 0
+                if not c2 % 2 == 0: offset_x2 = 15
+                else: offset_x2 = 0
+
+                if not r1 % 2 == 0: offset_y1 = -15
+                else: offset_y1 = 0
+                if not c1 % 2 == 0 and not r1 % 2 == 0: offset_y1 = 15
+                if not r2 % 2 == 0: offset_y2 = -15
+                else: offset_y2 = 0
+                if not c2 % 2 == 0 and not r2 % 2 == 0: offset_y2 = 15
+
+                x1 = c1 * (size * 1.5) + 15 - offset_x1
+                x2 = c2 * (size * 1.5) + 17 - offset_x2
+                y1 = r1 * (size * 0.86) + 27
+                y2 = r2 * (size * 0.86) + 27
+
+                self.draw.line((x1 + offset_y1,y1,x2 + offset_y2,y2), fill="blue", width=5)
+
+        #for i in self.can.find_all():
+            #print (self.can.type(i))
+
     def popout(self):
-        popup = Tk()
-        popup.wm_title(self.settlementname.get())
-        popup.geometry('600x400')
-        #label = Label(popup, text="text")
-        #label.pack(side="top", fill="x", pady=10)
-        TextArea = Text(popup, height=30, width=30)
-        TextArea.pack(expand=YES, fill=BOTH)
-        TextArea.tag_configure('bold_italics',
-                               font=('MS Serif', 12, 'bold', 'italic'))
+        if not self.editing:
+            self.screengrab()
+            popup = Toplevel()
+            #popup = Tk()
+            popup.title(self.settlementname.get())
+            popup.geometry('930x768')
+            popupbar = Menu(popup)
+            popupbar.add_cascade(label="Save", command=lambda: self.test("save"))
+            popupbar.add_cascade(label="Print", command=lambda: self.test("print"))
+            popupbar.add_cascade(label="Close", command=popup.destroy)
+            popup.config(menu=popupbar)
+            width, height = 465, 385
+            topframe=Frame(popup,width=width)
+            topframe.pack(side=TOP)
+            bottomframe=Frame(popup,width=width)
+            bottomframe.pack(side=BOTTOM)
+            leftframe = Frame(topframe, bd=1, width=width/2, bg="black")
+            leftframe.pack(side=LEFT)
+            rightframe = Frame(topframe,width=width)
+            rightframe.pack(side=RIGHT)
 
-        quote = "Settlement Name: "+self.settlementname.get()+"\nTheme: "+self.settlement_theme[1]+"\nFeature: "+self.settlement_theme[2]+"\n"
-        for x in range(len(self.districts)):
-            quote += "\nDistrict"+str(x+1)+str(self.district_type_feature[x])
-        quote = quote.replace('{', '')
-        quote = quote.replace('}', '')
 
-        print(quote)
-        TextArea.insert(END, quote)  # self.settlementname.get()+self.settlement_theme[1]+self.settlement_feature[1]+self.settlement_layout[1])
+            #frame = Frame(popup)
+            #frame.pack()
+            filename = "temp.png"
+            self.image.save(filename)
+            preview = ImageTk.PhotoImage(Image.open(filename))
+            w, h = preview.width(),preview.height()
+            x,y = 0,0
+            overview = Label(leftframe, image=preview)
+            overview.pack(side=TOP, fill=None, expand=NO)
+            """----------------------------------------------------------------------------------------------------------"""
+            #popup.can = Canvas(rightframe, width=width, height=height, bg="#fffafa")  # popuup frame?
+            #popup.can.pack()
+            #popup.can.focus_set()  # keyboard controls won't work unless the window is set to focussed
+            topquote = "Settlement Name: " + self.settlementname.get() + "\nTheme: " + self.settlement_theme[
+                1] + "\nFeature: " + self.settlement_feature[1] + "\n" + self.settlement_feature[2]
+            bottomquote = """"""
+            print(self.district_type_feature)
+            for x in range(len(self.districts)):
+                bottomquote += "\nDistrict " + str(x + 1) +": "+ str(self.district_type_feature[x][0])+" - "+str(self.district_type_feature[x][2]) +\
+                               "\nFeature: "+str(self.district_type_feature[x][1])+" - "+str(self.district_type_feature[x][3]) +"\n"
+            for x in (topquote, bottomquote):
+                x = x.replace('{', '')
+                x = x.replace('}', '')
+
+            TextArea = Text(rightframe, height=21.25, width=60)
+            TextArea.insert(END, topquote)
+            TextArea.pack(expand=YES, fill=BOTH)
+            TextArea.config(font="arial",wrap=WORD)  # ('Arial', 10, 'bold', 'italic'))
+
+            TextArea2 = Text(bottomframe, height=21.25, width=120)
+            TextArea2.pack(expand=YES, fill=BOTH)
+            TextArea2.config(font="arial",wrap=WORD,)
 
 
-        B1 = Button(popup, text="Okay", command=popup.destroy)
-        B1.pack()
+            TextArea2.insert(END, bottomquote)
+
+            popup.mainloop()
 
     def show_frame(self, page_name):
         '''Show a frame for the given page name'''
@@ -276,7 +415,6 @@ class Main(Tk):
             if brush == "District" and self.hexagons[clicked].district:
                 self.hexagons[clicked].district = not self.hexagons[clicked].district
                 self.districts.remove(coord)
-                #print(self.districts)
             elif brush == "District" and not self.hexagons[clicked].district:
                 self.hexagons[clicked].district = not self.hexagons[clicked].district
                 self.districts.append(coord)
@@ -292,7 +430,6 @@ class Main(Tk):
             self.rivercoord = self.can.gettags(rawclicked)[0].split(",")
             #self.rivercoord = str.split(self.can.gettags(rawclicked)[0],",")
             """LEARN TO SPLIT INTO INT IN ONE STEP"""
-            #print (self.rivercoord)
             x2 = self.can.bbox(rawclicked)[0]+((self.can.bbox(rawclicked))[2]-(self.can.bbox(rawclicked))[0]) / 2
             y2 = self.can.bbox(rawclicked)[1]+((self.can.bbox(rawclicked))[3]-(self.can.bbox(rawclicked))[1]) / 2
             self.rivselected += 1
@@ -300,7 +437,6 @@ class Main(Tk):
                 self.can.itemconfig(self.oldclicked, fill="white")
                 coord = self.oldriver + self.rivercoord
                 for x, o in enumerate(coord): coord[x] = int(coord[x])
-                print(coord)
                 h = DrawRiver(self.can,
                               self.x1,
                               self.y1,
@@ -309,7 +445,6 @@ class Main(Tk):
                               "#00FFFF",
                               "{},{},{},{}".format(coord[0], coord[1],coord[2],coord[3]))
                 self.rivers.append(coord)
-                print (self.rivers)
                 self.rivselected=0
             else: self.can.itemconfig(rawclicked, fill="blue")
             self.x1=x2
@@ -352,11 +487,6 @@ class Main(Tk):
                 self.coords["y"] = self.can.bbox(clicked)[1]
                 #change to be MUCH close to center of node
                 self.can.coords(self.lines[-1], self.coords["x"], self.coords["y"], self.coords["x2"], self.coords["y2"])
-            #elif brush == "river" and not self.can.type(clicked):    # self.riversnodes[clicked].on = True
-            #    print("clicked:", clicked)
-            #    self.lines.remove(self.lines[-1])
-                # self.rivernodes[clicked].river = not self.hexagons[clicked].river
-
             self.hexpaint()
 
     def rclick(self, evt):
@@ -372,34 +502,44 @@ class Main(Tk):
 
     def key_empty(self, event=None):
         if self.editing:
-            for i in self.hexagons:  # re-configure district only
-                i.district = False
-                i.coastal = False
-                i.river = False
-            self.hexpaint()
+            self.districts.clear()
+            if self.coastals: self.coastals.clear()
+            if self.rivers: self.rivers.clear()
+            self.init_grid([],[],[],10,7,30)
 
     def key_commit(self, event=None):
-        districtstr, coaststr, riverstr = "","",""
-        for i, o in enumerate(self.hexagons):  # re-configure district only
+        coaststr, riverstr = "",""
+        """for i, o in enumerate(self.hexagons):  # re-configure district only
             if o.district:
                 districtstr += ", "+ str(o.tags)
             if o.coastal:
                 coaststr += ", "+ str(o.tags)
         districtstr = "["+districtstr[2:]+"]"
-        coaststr = "["+coaststr[2:]+"]"
+        coaststr = "["+coaststr[2:]+"]""  """
 
-        #if coaststr != "":
-        #    layoutstr = layoutstr[0:-1]
-        #    layoutstr = layoutstr + ":" + coaststr
-        #layoutstr = layoutstr[0:-1]
-        #print (self.districts)
-        #print (self.coastals)
-        #print (self.rivers)
-        cur = self.conn.cursor()
-        statement = ("INSERT INTO layout(layout_rivers,layout_coastal,layout_districts,layout_type,layout_id)VALUES("+str(self.rivers)+","+str(self.coastals)+","+str(self.districts)+",NULL);")
-        print (statement)
-        #cur.execute(statement)
 
+        diststr =  "'"+str(self.districts)+"'"
+        if not self.coastals: coaststr = "NULL"
+        elif self.coastals == "" or len(self.coastals) == 0: coaststr="NULL"
+        else: coaststr = "'"+str(self.coastals)+"'"
+        if not self.rivers: riverstr = "NULL"
+        elif self.rivers == "" or len(self.rivers) == 0: riverstr = "NULL"
+        else: riverstr = "'"+str(self.rivers)+"'"
+        #+str(riverstr) + "," + str(coaststr) + "," + str(self.districts) + ");")
+
+        if not coaststr == "NULL" and not riverstr == "NULL":
+            type = "'Estuary'"
+        elif not coaststr == "NULL" and riverstr == "NULL":
+            type = "'Coastline'"
+        elif coaststr == "NULL" and not riverstr == "NULL":
+            type = "'River'"
+        else: type = "'Basic'"
+
+        with self.conn:
+            cur = self.conn.cursor()
+            statement = ("INSERT INTO layout(layout_rivers,layout_coastal,layout_districts,layout_type)VALUES("+riverstr+","+coaststr+","+diststr+","+type+");")
+            cur.execute(statement)
+            print("Layout committed to database")
 
     def brushswap(self, brush):
         self.editorbrush.set(brush)
@@ -409,7 +549,6 @@ class Main(Tk):
         else: toggle, fill = HIDDEN, "white"
         for i in self.rivernodes:
             self.can.itemconfig(i.tags,state=toggle,activefill=fill)
-
 
     def swapeditor(self):#, cols, rows, size):
         # self.key_empty() #new inits wipe i'm pretty sure
@@ -447,10 +586,8 @@ class Main(Tk):
             if self.rivers:
                 self.show_river(30)
 
-
     def generate_name(self, locks, type, length):
         with self.conn:
-            # print("Max rolls for each table: ",self.count)
             num1=(random.randint(1, self.count[5]))
             num2 = (random.randint(1, self.count[6]))
             precent = self.valuenames(self.conn, "name_generic_precent", "id", str(num1))
@@ -488,32 +625,40 @@ class Main(Tk):
                 else: self.coastals = None
                 if self.settlement_layout[4]: self.rivers = ast.literal_eval(self.settlement_layout[4])
                 else: self.rivers = None
-            required_districts = [[],[]]
-            required_districts [0]= ["Ruling","Religious","Law and Order","Military","Governing"] #different forms of governing districts
+            required_districts = [[],[],[]]
+            required_districts [0]= ["Ruling","Religious","Law and Order","Military","Governing"] #different forms of governing districts#[20,11,9,8,26]#
             required_districts [1]= ast.literal_eval(self.settlement_theme[2])
-            #print("\nSettlement "+self.settlementname.get()+":",self.settlement_theme[1], " ", self.settlement_feature[1], " ", self.settlement_layout[1], " ")
+            required_districts [2] = ast.literal_eval(self.settlement_theme[3])
+
 
             if dodistricts:
-                valid = 0
+                valueid,value  = 0,0
                 just_districts = []
-                self.district_type_feature = [[0, 0] for _ in range(len(self.districts))]
+                self.district_type_feature = [[0, 0, 0, 0] for _ in range(len(self.districts))]
                 for x in range(len(self.districts)):
                     #add in list of district ID's .... orrrrrrr check names under required instead of numbers!
                     if len(self.districts)-x==2 and not set(just_districts).intersection(required_districts[0]):
-                        value= random.choice(required_districts[0])
-                        print ("Governing District set as",value)
-                    elif len(self.districts)-x==1 and not set(just_districts).intersection(required_districts[1]):
-                        value = random.choice(required_districts[1])
-                        print("Thematic District set as", value)
+                        valueid= random.choice([20,11,9,8,26])
+                        print ("Governing District set as",valueid)
+                    elif len(self.districts)-x==1 and not set(just_districts).intersection(required_districts[2]):
+                        valueid = random.choice(required_districts[1])
+                        print("Thematic District set as", valueid)
                     else:
-                        value= self.valuenames(self.conn, "district_type", "district_type_id", str(random.randint(1, self.count[3])))[1]
+                        valueid= random.randint(1, self.count[3])
+                    value= self.valuenames(self.conn, "district_type", "district_type_id", str(valueid))
+                    #print("dis type",value)
+
                     #I could almost definitely ingest all the values as lists early and just use random.choice for all these...
-                    self.district_type_feature[x][0] = value
-                    just_districts.append(value)
+                    self.district_type_feature[x][0] = value[1]
+                    self.district_type_feature[x][2] = value[2]
+                    just_districts.append(value[1])
 
                     value = self.valuenames(self.conn, "district_feature", "district_feature_id",
-                                              str(random.randint(1, self.count[4])))[1]
-                    self.district_type_feature[x][1] = value
+                                              str(random.randint(1, self.count[4])))
+                    #print("feature type", value)
+                    self.district_type_feature[x][1] = value[1]
+                    self.district_type_feature[x][3] = value[2]
+
         self.init_grid(self.districts,self.coastals,self.rivers,10,7,30)
 
     def show_river (self, size):
@@ -539,7 +684,6 @@ class Main(Tk):
             y1 = r1 * (size * 0.86) + 27
             y2 = r2 * (size * 0.86) + 27
 
-            print(x1, y1, x2, y2)
             h = DrawRiver(self.can,
                           x1 + offset_y1,
                           y1,
@@ -637,17 +781,12 @@ class Main(Tk):
             n = -1
             if layout_river:
                 for i, o in enumerate(layout_river):
-                    print("river coordinates:", i, o)
                     x1 = o[0]
                     y1 = o[1]
                     x2 = o[2]
                     y2 = o[3]
                     tag1 = str(x1) + "," + str(y1)
                     tag2 = [x2, y2]
-                    print(tag1)
-                    print(tag2)
-                    # for x in range():
-
 
     def init_grid(self, layout_districts, layout_coastal, layout_river, cols, rows, size):
         self.clear_grid()
@@ -732,20 +871,6 @@ class Main(Tk):
                                      (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
                                      justify=CENTER,
                                      text=(self.district_type_feature[n][0]))
-
-
-                """for i, o in enumerate(layout_river):
-                    print ("river coordinates:", i, o)
-                    x1=o[0]
-                    y1=o[1]
-                    x2=o[2]
-                    y2=o[3]
-                    tag1 =str(x1)+","+str(y1)
-                    tag2 = [x2,y2]
-                    print (tag1)
-                    print (tag2)
-                    #for x in range():
-                """
             if layout_river:
                 self.show_river(30)
 
