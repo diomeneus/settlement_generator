@@ -100,25 +100,61 @@ class Controls_Generator(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
-        btn_editor = Button(self, text="Layout Editor", command=lambda: [self.controller.swapeditor(),controller.show_frame("Controls_Editor")])
-        btn_editor.pack()
-        Label(self,text = "").pack()
-        labelframe = LabelFrame(self, text="Generate")
-        labelframe.pack(fill="both", expand="yes")
 
-        btn_genname = Button(labelframe, text="Name", width = 8,command=lambda: self.controller.generate_name(0, "generic", "short"))
-        btn_generate = Button(labelframe, text="Everything", width=8, command=lambda: self.controller.generate(True,True))
-        btn_genlayout = Button(labelframe, text="Layout", width = 8, command=lambda: self.controller.generate(True,False))
-        btn_gendistricts = Button(labelframe, text="Districts", width = 8, command=lambda: self.controller.generate(False,True))
-        btn_genname.pack()
-        btn_generate.pack()
-        btn_genlayout.pack()
-        btn_gendistricts.pack()
-        Label(self, text="").pack()
+        #variable declares
+        tkvar_layout,tkvar_naming,tkvar_namelen = StringVar(self),StringVar(self),StringVar(self)
+        drop_layouts = {'Any', 'Basic', 'Coastal', 'River', 'Confluence', 'Estuary'}
+        tkvar_layout.set('Any')
+        drop_namings = {'Generic', 'Good', 'Evil', 'Magical', 'Dwarven', 'Elven', 'Halfling', 'Orcish'}
+        tkvar_naming.set('Generic')
+        drop_namelens = {'Short', 'Any', 'Long'}
+        tkvar_namelen.set('Any')
 
-        labelframe2 =LabelFrame(self, text="Settlement")
-        labelframe2.pack(fill="both", expand="yes")
-        Label(labelframe2, textvariable=controller.settlementname).pack()
+        #buttons, labels and labelframes
+        Button(self, text="Layout Editor",width=18,command=lambda: [self.controller.swapeditor(),controller.show_frame("Controls_Editor")]).grid(column=0,row=0)#.pack()
+        Label(self,text = "").grid(column=0,row=1)#.pack()
+        labelframe_gen = LabelFrame(self, text="Generate",labelanchor=N,relief=GROOVE)
+        labelframe_gen.grid(column=0,row=2)
+        Button(labelframe_gen, text="Layout", height=1,width=9,anchor=W,command=lambda: self.controller.generate(True, False)).grid(column=0,row=0,sticky=W)#.pack(side=LEFT, anchor=NW, fill=X, expand=YES)
+        dropmenu_layouts = Menubutton(labelframe_gen, text="Locks", width=9)#.grid(column=1,row=0, sticky=W)#tkvar_layout, *drop_layouts).grid(column=1,row=0, sticky=W)#.pack(side=LEFT, anchor=NE, fill=X, expand=YES)
+        dropmenu_layouts.grid(column=1,row=0)
+        Button(labelframe_gen, text="Districts",width=8,anchor=W, command=lambda: self.controller.generate(False, True)).grid(column=0,row=1, sticky=W)#.pack(anchor=W)
+        #dropmenu_layouts = OptionMenu(labelframe_gen, tkvar_layout, *drop_layouts).grid(column=1, row=0, sticky=W)
+        Button(labelframe_gen, text="Everything",width=18, command=lambda: self.controller.generate(True, True)).grid(column=0,row=2, sticky=W,columnspan=2)#.pack(anchor=W)
+        Label(self, text="").grid(column=0, row=3)  # .pack()
+
+        dropmenu_layouts.menu = Menu(dropmenu_layouts, tearoff=0)
+        dropmenu_layouts["menu"] = dropmenu_layouts.menu
+
+        self.lock_layout_basic = IntVar()
+        self.lock_layout_coastal = IntVar()
+        self.lock_layout_river = IntVar()
+        self.lock_layout_confluence = IntVar()
+        self.lock_layout_estuary = IntVar()
+
+        dropmenu_layouts.menu.add_checkbutton(label="Basic", variable=self.lock_layout_basic)
+        dropmenu_layouts.menu.add_checkbutton(label="Coastal", variable=self.lock_layout_coastal)
+        dropmenu_layouts.menu.add_checkbutton(label="River", variable=self.lock_layout_river)
+        dropmenu_layouts.menu.add_checkbutton(label="Confluence", variable=self.lock_layout_confluence)
+        dropmenu_layouts.menu.add_checkbutton(label="Estuary", variable=self.lock_layout_estuary)
+        drop_layouts = {'Any', 'Basic', 'Coastal', 'River', 'Confluence', 'Estuary'}
+
+        #def change_dropdown(*args):
+        #    print(tkvar_layout.get())
+        # link function to change dropdown
+        #tkvar_layout.trace('w', change_dropdown)
+
+        labelframe_name =LabelFrame(self, text="Settlement")
+        labelframe_name.grid(column=0,row=4)
+        Label(labelframe_name, textvariable=controller.settlementname).grid(column=0,row=0,sticky=W)
+        Button(labelframe_name, text="Name", width=15, command=lambda: self.controller.generate_name(0, "generic", "short")).grid(column=0,row=1,sticky=W)
+        Button(labelframe_name, text="⭮", width=1,command=lambda: self.controller.refresh_name()).grid(column=1,row=1,sticky=W)
+
+        #btn_genname.pack()
+        #btn_refreshname.pack()
+        # on change dropdown value
+
+
 
 class Main(Tk):
     def __init__(self):
