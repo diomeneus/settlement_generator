@@ -8,15 +8,11 @@ pip install fpdf
 DB stored in /venv/DB/settlement_generator.db
 
 TODO: 
-Add more naming options than just "Generic Fantasy
-Include length options
-include the possibility for no middle text
+Add an expiremental naming length
+add additional options for evil/magical that grab from other tables. 
 
-Layout locks need to actually function
-  Well all locks need to but the layout ones actually exist
 river editor:
-  removable rivers with right click
-  click and drag rivers onto the map
+  complete river layouts in DB
   Create estuary layout set
   
 Text formatting on descriptions needs some love. 
