@@ -131,9 +131,9 @@ class Controls_Generator(Frame):
         self.lock_layout_confluence = IntVar()
         self.lock_layout_confluence.set(1)
         self.lock_layout_estuary = IntVar()
-        self.lock_layout_estuary.set(1)
+        #self.lock_layout_estuary.set(1)
         self.lock_layout_wetland = IntVar()
-        self.lock_layout_wetland.set(1)
+        #self.lock_layout_wetland.set(1)
 
         dropmenu_layouts.menu.add_checkbutton(label="Basic", variable=self.lock_layout_basic)
         dropmenu_layouts.menu.add_checkbutton(label="Coastal", variable=self.lock_layout_coastal)
@@ -654,9 +654,9 @@ class Main(Tk):
         with self.conn:
             cur = self.conn.cursor()
             statement = ("INSERT INTO layout_"+self.layouttype+"(layout_rivers,layout_coastal,layout_districts)VALUES("+riverstr+","+coaststr+","+diststr+");")
-            #print ("to be executed:",statement)
-            cur.execute(statement)
-            print("*********************************Layout committed to database*********************************")
+            print ("to be added to a personal database... later...\n",statement)
+            #cur.execute(statement)
+            #print("*********************************Layout committed to database*********************************")
 
     def brushswap(self, brush): #weeeeeeeeeeeee
         self.editorbrush.set(brush)
