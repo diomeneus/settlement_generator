@@ -1,14 +1,18 @@
 from tkinter import *
-#import tkinter as tk
+from tkinter.filedialog import askopenfilename
+from tkinter import filedialog
+
 from math import cos, sin, sqrt, radians, floor
 import math
+
 import random
 import os
-import sqlite3
 import ast
+import sqlite3
 from sqlite3 import Error
 from PIL import Image, ImageDraw, ImageTk, ImageFont,ImageChops
 from fpdf import FPDF
+#import pyautogui
 
 class RiverNode: #draws the circles on Hex corners for making rivers. Should only be visible during river editor
     def __init__(self, parent, x, y, x2, y2, outline, color,tags):
@@ -46,6 +50,7 @@ class DrawHexagon:
         self.district = False
         self.river = False
         self.coastal = False
+        self.disnum = 0
 
         angle = 60
         coordinates = []
@@ -107,16 +112,16 @@ class Controls_Generator(Frame):
         #tkvar_layout.set('Any')
 
         #buttons, labels and labelframes
-        Button(self, text="Layout Editor",width=18,command=lambda: [self.controller.swapeditor(),controller.show_frame("Controls_Editor")]).grid(column=0,row=0)#.pack()
+        Button(self, text="Layout Editor",width=18,command=lambda: [self.controller.swapeditor(),controller.show_frame("Controls_Editor")]).grid(column=0,row=0)
         Label(self,text = "").grid(column=0,row=1)#.pack()
         labelframe_gen = LabelFrame(self, text="Generate",labelanchor=N,relief=GROOVE)
         labelframe_gen.grid(column=0,row=2)
-        Button(labelframe_gen, text="Layout", height=1,width=9,anchor=W,command=lambda: self.controller.generate(True, False,self.getlayoutlocks())).grid(column=0,row=0,sticky=W)#.pack(side=LEFT, anchor=NW, fill=X, expand=YES)
+        Button(labelframe_gen, text="Layout", height=1,width=9,anchor=W,command=lambda: self.controller.generate(True, False,self.getlayoutlocks())).grid(column=0,row=0,sticky=W)
         dropmenu_layouts = Menubutton(labelframe_gen, text="Filters", width=9)
         dropmenu_layouts.grid(column=1,row=0)
-        Button(labelframe_gen, text="Districts",width=8,anchor=W, command=lambda: self.controller.generate(False, True,False)).grid(column=0,row=1, sticky=W)#.pack(anchor=W)
+        Button(labelframe_gen, text="Districts",width=8,anchor=W, command=lambda: self.controller.generate(False, True,False)).grid(column=0,row=1, sticky=W)
         #dropmenu_layouts = OptionMenu(labelframe_gen, tkvar_layout, *drop_layouts).grid(column=1, row=0, sticky=W)
-        Button(labelframe_gen, text="Everything",width=18, command=lambda: self.controller.generate(True, True,self.getlayoutlocks())).grid(column=0,row=2, sticky=W,columnspan=2)#.pack(anchor=W)
+        Button(labelframe_gen, text="Everything",width=18, command=lambda: self.controller.generate(True, True,self.getlayoutlocks())).grid(column=0,row=2, sticky=W,columnspan=2)
         Label(self, text="").grid(column=0, row=3)  # .pack()
 
         dropmenu_layouts.menu = Menu(dropmenu_layouts, tearoff=0)
@@ -186,18 +191,19 @@ class Main(Tk):
         Tk.__init__(self)
         self.settlementname = StringVar()
         self.editorbrush = StringVar()
-        self.rivselected=0
+        self.rivselected,self.num=0,0
         self.coords = {"x": 0, "y": 0, "x2": 0, "y2": 0}
         self.selectednode =[]
         self.fullrandom=False
+        self.lastclicked=False
         """Setting up our frames, titles and UI"""
         self.title("Settlement Generator")
         menubar = Menu(self)
 
         filemenu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label="Open", command=lambda: self.brushswap("District"))
-        filemenu.add_command(label="Save", command=lambda: self.save())
-        filemenu.add_command(label="Print", command=lambda: self.brushswap("Coastal"))
+        filemenu.add_command(label="Open", command=lambda: self.open())
+        filemenu.add_command(label="Save", command=lambda: self.save(True))
+        filemenu.add_command(label="Print", command=lambda: [self.save(False),self.make_print()])
         menubar.add_cascade(label="File", menu=filemenu)
 
         optionsmenu = Menu(menubar, tearoff=0)
@@ -215,12 +221,15 @@ class Main(Tk):
         menubar.add_cascade(label="Popout", command=self.popout)
 
         self.config(menu=menubar)
+        width = 465
+        height = 385
 
         #setting up our frames
         mainFrame = Frame(self)
-        mainFrame.pack(side="left", fill="both", expand=True)
-        mainFrame.grid_rowconfigure(0, weight=1)
-        mainFrame.grid_columnconfigure(0, weight=1)
+        mainFrame.grid(column=0,row=0)
+        #mainFrame.pack(side="left", fill="both", expand=True)
+        #mainFrame.grid_rowconfigure(0, weight=1)
+        #mainFrame.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
         for F in (Controls_Editor, Controls_Generator):
@@ -231,14 +240,46 @@ class Main(Tk):
         self.show_frame("Controls_Generator")
 
         displayFrame = Frame(self)
-        displayFrame.pack()
+        displayFrame.grid(column=1,row=0)
+
+        highlightFrame = Frame(self)
+        #highlightFrame.config()
+        highlightFrame.grid(column=2,row=0)
+        self.highcan = Canvas(highlightFrame, width=200, height=height/3, bg="#fffafa")
+        self.highcan.grid(row=0,column=0,columnspan=2)#.pack()
+
         self.brushswap("District")
+
+        self.highlighthex = DrawHexagon(self.highcan,
+                                        70,
+                                        20,
+                                        60,
+                                        "#9FB6CD",
+                                        "#111111",  # DBDBDB",
+                                        "[{},{}]".format("y", "x"))
+        self.highlighttext = self.highcan.create_text(100,
+                                                      80,
+                                                      justify=CENTER,
+                                                      text="District")
+        self.highlighttitle = self.highcan.create_text(70,
+                                                      10,
+                                                      justify=CENTER,
+                                                      text="District")
+        buttonwidth=11
+        self.btn_reroll_district = Button(highlightFrame, text="District Type", width=buttonwidth, command=lambda: self.reroll_feature(self.num,0))
+        self.btn_reroll_district.grid(row=1, column=0)  # .pack()#.grid(column=0, row=2, sticky=W, columnspan=2)
+        Button(highlightFrame, text="District Feature", width=buttonwidth, command=lambda: self.reroll_feature(self.num,1)).grid(row=2,column=0)#.pack()#.grid(column=0, row=2, sticky=W, columnspan=2)
+        self.isreq = Label(highlightFrame, text="Required", width=buttonwidth)#.pack()#.grid(column=0, row=2, sticky=W, columnspan=2)
+        self.isreq.grid(row=3,column=0)
+
+        self.highlightdescription = Text(highlightFrame, height=12, width=15)
+        self.highlightdescription.insert(END, "Description")
+        self.highlightdescription.grid(row=1,column=1,rowspan=18)#self.highlightdescription.pack()#expand=NO, fill=BOTH)
+        self.highlightdescription.config(font="arial", wrap=WORD)
 
         """
         make a "debug" option that draws info over the canvas
         """
-        width = 465
-        height = 385
         self.can = Canvas(displayFrame, width=width, height=height, bg="#fffafa")
         self.can.pack()
         self.image = Image.new("RGB", (width,height), "white")
@@ -265,18 +306,14 @@ class Main(Tk):
         self.layoutcount = [0] * 6  # max row of all tables for rolling
         self.namecount = [0] * 24  # max row of all tables for rolling
 
-        #count[0] = theme count
-            #count[1] = settlement feature count
-            #count[2] = layout count
-            #count[3] = district type count
-            #count[4] = district features count
-            #count[5-13] = NAMING: generic 5-prefix/center,6-suffix,7-good,8-evil,9-magical,10-dwarven,11-elven,12-halfling,13-orcish
+
+
 
         # create a database connection
         database = "..\DB\settlement_generator.db"
         self.conn = self.create_connection(database)
         self.rowcounts(self.conn)  # counts the max rowlength for each table.
-        self.generate(True,True,[1,1,1,1,1,1]) #gotta change the 7 to a calculation
+        self.generate(True,True,[1,1,1,1,0,0]) #gotta change the 7 to a calculation
         self.settlementname.set("Settlement Name")
 
         self.prefix, self.center, self.suffix = "","",""
@@ -393,7 +430,14 @@ class Main(Tk):
         if bbox:
             return im.crop(bbox)
 
-    def save(self): #only works properly when invoked from a popup window currently. makes a pdf.
+    def save(self,dialog): #only works properly when invoked from a popup window currently. makes a pdf.
+        if dialog:
+            self.filename = filedialog.asksaveasfilename(initialfile= self.settlementname.get()+".pdf",initialdir = "/",title = "Select file",filetypes = (("pdf files","*.pdf"),("all files","*.*")))
+            if self.filename is None:  # asksaveasfile return `None` if dialog closed with "cancel".
+                return
+
+        else: self.filename = "Settlements/" + self.settlementname.get() + ".pdf"
+        print (self.filename)
         toptext, bottomtext = self.getdescriptions()
         pdf = FPDF()
         pdf.add_page()
@@ -409,9 +453,16 @@ class Main(Tk):
         pdf.multi_cell(0, 4, bottomtext)
 
         #pdf.multi_cell(200, 40, txt=bottomtext, ln=3, align="L")
-        filename = "Settlements/"+self.settlementname.get()+".pdf"
-        pdf.output(filename)
+        pdf.output(self.filename)
         #get a filename you WANT to save as... explorer window or use the settlement name.
+
+    def make_print(self):
+        print (self.filename)
+        #os.startfile(self.filename, "print")
+
+    def open(self):
+        filename = askopenfilename()  # show an "Open" dialog box and return the path to the selected file
+        print(filename)
 
     def getdescriptions(self):
         topquote = "Settlement Name: " + self.settlementname.get() + "\nTheme: " + self.settlement_theme[
@@ -440,8 +491,8 @@ class Main(Tk):
             popup.geometry("800x600")
 
             popupbar = Menu(popup)
-            popupbar.add_cascade(label="Save", command=lambda: self.save())
-            popupbar.add_cascade(label="Print", command=lambda: self.test("print"))
+            popupbar.add_cascade(label="Save", command=lambda: self.save(True))
+            popupbar.add_cascade(label="Print", command=lambda: [self.save(False),self.make_print()])
             popupbar.add_cascade(label="Close", command=popup.destroy)
             popup.config(menu=popupbar)
             iwidth = self.image.width
@@ -483,7 +534,28 @@ class Main(Tk):
             if i.coastal: self.can.itemconfig(i.tags, fill="#0000FF")
             if i.coastal and i.district: self.can.itemconfig(i.tags, fill="#00FFFF")
 
+    def reroll_feature(self,num,type):
+        if not self.required or type ==1:
+            valueid = random.randint(1, self.count[2+type])
+            if type==0:
+                value = self.valuenames(self.conn, "district_type", "district_type_id", str(valueid))
+            else:
+                value = self.valuenames(self.conn, "district_feature", "district_feature_id", str(valueid))
+            self.district_type_feature[num][0+type] = value[1]
+            self.district_type_feature[num][2+type] = value[2]
+            self.generate(False,False,False)
+        else: print("required district")
+        #event = ast.literal_eval("<ButtonPress event state=Mod1 num=1 x="+str(self.lastcoord[0])+" y="+str(self.lastcoord[1])+">")
+
+        #pyautogui.click(self.lastcoord[0], self.lastcoord[1])
+        #event.x = self.lastcoord[0]
+        #event.y = self.lastcoord[1]
+        #self.click(event)
+        #print (self.lastcoord)
+        #self.can.itemconfig(self.lastclicked, width=3)
+
     def click(self, evt): #I no longer know where click starts and clickrelease ends....
+        print (evt)
         x, y = evt.x, evt.y
         offset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases cnstly.
         clicked = int(self.can.find_closest(x, y)[0]) - offset
@@ -492,6 +564,53 @@ class Main(Tk):
         coord = []
         if not self.coastals: self.coastals=[]
         if not self.rivers: self.rivers=[]
+
+        if not self.editing and self.can.type(rawclicked) == "polygon":# and self.hexagons(clicked):
+            self.can.itemconfig(self.lastclicked, width=1)
+            self.can.itemconfig(rawclicked,width=3)
+            self.btn_reroll_district.config(fg="black")
+            self.required = False
+
+            n=-1
+            for x in enumerate(self.hexagons):
+                y=x[0]
+                #print (self.hexagons[x[0]].disnum)
+                if self.hexagons[x[0]].district:
+                    n+=1
+                    self.hexagons[x[0]].disnum=n
+
+            coord = ast.literal_eval(self.can.gettags(rawclicked)[0])
+            self.num = self.hexagons[clicked].disnum
+            self.highcan.itemconfig(self.highlighttitle, text="District " + str(self.num+1))
+            self.highcan.itemconfig(self.highlighttext,text=self.district_type_feature[self.num][0])
+
+            t1, t2,required =0,0,False
+            for x in enumerate(self.districts):
+                n=x[0]
+                i = {self.district_type_feature[n][0]}
+                if set(i).intersection(self.required_districts[0]): t1+=1
+                if set(i).intersection((set(self.required_districts[2]))): t2+=1
+            i = {self.district_type_feature[self.num][0]}
+            if set(i).intersection(self.required_districts[0]) and t1==1:
+                self.required = True
+                self.btn_reroll_district.config(fg="gray")
+
+            elif set(i).intersection(self.required_districts[2]) and t2==1:
+                self.required = True
+                self.btn_reroll_district.config(fg="gray")
+
+
+            description = str(self.district_type_feature[self.num][0]) + "\n\n" + str(self.district_type_feature[self.num][1])+"\n\n"+str(self.required)
+            self.highlightdescription.delete('1.0', END)
+            self.highlightdescription.insert(END, description)
+
+            self.lastclicked=rawclicked
+            w=self.can.bbox(self.lastclicked)
+            #print (w)
+            self.lastcoord=[w[0]+30,w[1]+15]
+            #print (self.lastcoord)
+            #print(self.can.bbox(self.lastclicked))
+
         if self.editing and not brush == "River":
             coord = ast.literal_eval(self.hexagons[clicked].tags)
 
@@ -769,10 +888,10 @@ class Main(Tk):
                 else: self.coastals = None
                 if self.settlement_layout[3]: self.rivers = ast.literal_eval(self.settlement_layout[3])
                 else: self.rivers = None
-            required_districts = [[],[],[]]
-            required_districts [0]= ["Ruling","Religious","Law and Order","Military","Governing"] #different forms of governing districts#[20,11,9,8,26]#
-            required_districts [1]= ast.literal_eval(self.settlement_theme[2])
-            required_districts [2] = ast.literal_eval(self.settlement_theme[3])
+            self.required_districts = [[],[],[]]
+            self.required_districts [0]= ["Ruling","Religious","Law and Order","Military","Governing"] #different forms of governing districts#[20,11,9,8,26]#
+            self.required_districts [1]= ast.literal_eval(self.settlement_theme[2])
+            self.required_districts [2] = ast.literal_eval(self.settlement_theme[3])
 
 
             if dodistricts:
@@ -781,11 +900,11 @@ class Main(Tk):
                 self.district_type_feature = [[0, 0, 0, 0] for _ in range(len(self.districts))]
                 for x in range(len(self.districts)):
                     #add in list of district ID's .... orrrrrrr check names under required instead of numbers!
-                    if len(self.districts)-x==2 and not set(just_districts).intersection(required_districts[0]):
+                    if len(self.districts)-x==2 and not set(just_districts).intersection(self.required_districts[0]):
                         valueid= random.choice([20,11,9,8,26])
                         print ("Governing District set as",valueid)
-                    elif len(self.districts)-x==1 and not set(just_districts).intersection(required_districts[2]):
-                        valueid = random.choice(required_districts[1])
+                    elif len(self.districts)-x==1 and not set(just_districts).intersection(self.required_districts[2]):
+                        valueid = random.choice(self.required_districts[1])
                         print("Thematic District set as", valueid)
                     else:
                         valueid= random.randint(1, self.count[2])
@@ -1010,12 +1129,26 @@ class Main(Tk):
                                 "#111111",
                                 "[{},{}]".format(i[1], i[0]))
                 self.hexagons.append(h)  # list of hexagon objects created by fillhexagon class
+                self.hexagons[-1].district = True
+
+                #self.can.create_text(i[1] * (size * 1.5) + (size / 2) + 17,
+                #                     (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
+                #                     justify=CENTER,
+                #                     text=(self.district_type_feature[n][0]))
+            n=-1
+            for i in layout_districts: #i should be a 2 item list of X and Y of the hex
+                n += 1
+                if i[1] % 2 == 0:
+                    offset = size * sqrt(3) / 2
+                else:
+                    offset = 0
                 self.can.create_text(i[1] * (size * 1.5) + (size / 2) + 17,
                                      (i[0] * (size * sqrt(3))) + offset + 10 + (size / 2),
                                      justify=CENTER,
                                      text=(self.district_type_feature[n][0]))
             if layout_river:
                 self.show_river(30)
+    #def drawtext(self,canvas,x,y,size):
 
     def clear_grid(self):
         self.can.delete("all")
@@ -1051,9 +1184,6 @@ class Main(Tk):
             cur.execute("SELECT COUNT(1) from name_"+x+"_suffix")
             (self.namecount[n+2],) = cur.fetchone()
             n +=3
-
-
-
 
     def valuenames(self, conn, table, column, value):
         cur = conn.cursor()
