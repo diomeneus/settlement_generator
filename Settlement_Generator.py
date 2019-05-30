@@ -13,6 +13,21 @@ from sqlite3 import Error
 from PIL import Image, ImageDraw, ImageTk, ImageFont,ImageChops
 from fpdf import FPDF
 #import pyautogui
+class input_name:
+    def __init__(self,parent):
+        self.controller=parent
+        top=self.top=Toplevel(parent)
+        self.l=Label(top,text="Enter a Settlement Name")
+        self.l.pack()
+        self.e=Entry(top)
+        self.e.pack()
+        self.b=Button(top,text='Ok',command=self.cleanup)
+        self.b.pack()
+    def cleanup(self):
+        self.value=self.e.get()
+        #print (self.controller)
+        self.controller.settlementname.set(self.value)
+        self.top.destroy()
 
 class RiverNode: #draws the circles on Hex corners for making rivers. Should only be visible during river editor
     def __init__(self, parent, x, y, x2, y2, outline, color,tags):
@@ -116,12 +131,12 @@ class Controls_Generator(Frame):
         Label(self,text = "").grid(column=0,row=1)#.pack()
         labelframe_gen = LabelFrame(self, text="Generate",labelanchor=N,relief=GROOVE)
         labelframe_gen.grid(column=0,row=2)
-        Button(labelframe_gen, text="Layout", height=1,width=9,anchor=W,command=lambda: self.controller.generate(True, False,self.getlayoutlocks())).grid(column=0,row=0,sticky=W)
+        Button(labelframe_gen, text="Layout", height=1,width=9,anchor=W,command=lambda: self.controller.generate(False,False,True, False,self.getlayoutlocks())).grid(column=0,row=0,sticky=W)
         dropmenu_layouts = Menubutton(labelframe_gen, text="Filters", width=9)
         dropmenu_layouts.grid(column=1,row=0)
-        Button(labelframe_gen, text="Districts",width=8,anchor=W, command=lambda: self.controller.generate(False, True,False)).grid(column=0,row=1, sticky=W)
+        Button(labelframe_gen, text="Districts",width=8,anchor=W, command=lambda: self.controller.generate(False,False,False, True,False)).grid(column=0,row=1, sticky=W)
         #dropmenu_layouts = OptionMenu(labelframe_gen, tkvar_layout, *drop_layouts).grid(column=1, row=0, sticky=W)
-        Button(labelframe_gen, text="Everything",width=18, command=lambda: self.controller.generate(True, True,self.getlayoutlocks())).grid(column=0,row=2, sticky=W,columnspan=2)
+        Button(labelframe_gen, text="Everything",width=18, command=lambda: self.controller.generate(True,True,True, True,self.getlayoutlocks())).grid(column=0,row=2, sticky=W,columnspan=2)
         Label(self, text="").grid(column=0, row=3)  # .pack()
 
         dropmenu_layouts.menu = Menu(dropmenu_layouts, tearoff=0)
@@ -152,6 +167,8 @@ class Controls_Generator(Frame):
         Label(labelframe_name, textvariable=controller.settlementname).grid(column=0,row=0,sticky=W)
         Button(labelframe_name, text="Name", width=15, command=lambda: self.controller.generate_name(0, self.tkvar_naming.get(), self.tkvar_namelen.get())).grid(column=0,row=1,sticky=W)
         Button(labelframe_name, text="⭮", width=1,command=lambda: self.controller.refresh_name(self.tkvar_namelen.get())).grid(column=1,row=1,sticky=W)
+        Button(labelframe_name, text="↩", width=1,command=lambda: input_name(controller)).grid(column=2, row=1, sticky=W)
+
 
         drop_namings = {'Generic', 'Good', 'Evil', 'Magical', 'Dwarven', 'Elven', 'Halfling', 'Orc'}
         self.tkvar_naming.set('Generic')
@@ -190,6 +207,8 @@ class Main(Tk):
     def __init__(self):
         Tk.__init__(self)
         self.settlementname = StringVar()
+        self.settlement_theme=["0","0","0","0"]
+        self.settlement_feature=["0","0","0","0"]
         self.editorbrush = StringVar()
         self.rivselected,self.num=0,0
         self.coords = {"x": 0, "y": 0, "x2": 0, "y2": 0}
@@ -245,10 +264,24 @@ class Main(Tk):
         highlightFrame = Frame(self)
         #highlightFrame.config()
         highlightFrame.grid(column=2,row=0)
+        buttonwidth = 11
+
+        self.highlight_settheme = StringVar()
+        self.highlight_setfeature = StringVar()
+
+        self.btn_reroll_settheme = Button(highlightFrame, text="Theme", width=buttonwidth,command=lambda: self.generate(True,False,False,False,False))
+        self.btn_reroll_settheme.grid(row=0, column=0)
+        self.btn_reroll_setfeature = Button(highlightFrame, text="Feature", width=buttonwidth,command=lambda: self.generate(False,True,False,False,False))
+        self.btn_reroll_setfeature.grid(row=1, column=0)
+        self.lbl_settheme = Label(highlightFrame,textvariable=self.highlight_settheme).grid(row=0,column=1)
+        self.lbl_setfeature = Label(highlightFrame, textvariable=self.highlight_setfeature).grid(row=1, column=1)
+
+
         self.highcan = Canvas(highlightFrame, width=200, height=height/3, bg="#fffafa")
-        self.highcan.grid(row=0,column=0,columnspan=2)#.pack()
+        self.highcan.grid(row=2,column=0,columnspan=2)#.pack()
 
         self.brushswap("District")
+
 
         self.highlighthex = DrawHexagon(self.highcan,
                                         70,
@@ -265,17 +298,26 @@ class Main(Tk):
                                                       10,
                                                       justify=CENTER,
                                                       text="District")
-        buttonwidth=11
         self.btn_reroll_district = Button(highlightFrame, text="District Type", width=buttonwidth, command=lambda: self.reroll_feature(self.num,0))
-        self.btn_reroll_district.grid(row=1, column=0)  # .pack()#.grid(column=0, row=2, sticky=W, columnspan=2)
-        Button(highlightFrame, text="District Feature", width=buttonwidth, command=lambda: self.reroll_feature(self.num,1)).grid(row=2,column=0)#.pack()#.grid(column=0, row=2, sticky=W, columnspan=2)
-        self.isreq = Label(highlightFrame, text="Required", width=buttonwidth)#.pack()#.grid(column=0, row=2, sticky=W, columnspan=2)
-        self.isreq.grid(row=3,column=0)
+        self.btn_reroll_district.grid(row=3, column=0)
+        Button(highlightFrame, text="District Feature", width=buttonwidth, command=lambda: self.reroll_feature(self.num,1)).grid(row=4,column=0)
+        self.isreq = Label(highlightFrame, text="Required", width=buttonwidth)
+        self.isreq.grid(row=5,column=0)
+
+
+        self.highlight_district = StringVar()
+        self.highlight_feature=StringVar()
+        self.highlight_required=StringVar()
+
+
+        self.lbl_districttype = Label(highlightFrame, textvariable=self.highlight_district).grid(row=3, column=1)
+        self.lbl_districtfeature = Label(highlightFrame, textvariable=self.highlight_feature).grid(row=4, column=1)
+        self.lbl_required = Label(highlightFrame, textvariable=self.highlight_required).grid(row=5, column=1)
 
         self.highlightdescription = Text(highlightFrame, height=12, width=15)
-        self.highlightdescription.insert(END, "Description")
-        self.highlightdescription.grid(row=1,column=1,rowspan=18)#self.highlightdescription.pack()#expand=NO, fill=BOTH)
-        self.highlightdescription.config(font="arial", wrap=WORD)
+        #self.highlightdescription.insert(END, "Description")
+        #self.highlightdescription.grid(row=3,column=1,rowspan=18)#self.highlightdescription.pack()#expand=NO, fill=BOTH)
+        #self.highlightdescription.config(font="arial", wrap=WORD)
 
         """
         make a "debug" option that draws info over the canvas
@@ -313,7 +355,7 @@ class Main(Tk):
         database = "..\DB\settlement_generator.db"
         self.conn = self.create_connection(database)
         self.rowcounts(self.conn)  # counts the max rowlength for each table.
-        self.generate(True,True,[1,1,1,1,0,0]) #gotta change the 7 to a calculation
+        self.generate(True,True,True,True,[1,1,1,1,0,0])
         self.settlementname.set("Settlement Name")
 
         self.prefix, self.center, self.suffix = "","",""
@@ -435,6 +477,7 @@ class Main(Tk):
             self.filename = filedialog.asksaveasfilename(initialfile= self.settlementname.get()+".pdf",initialdir = "/",title = "Select file",filetypes = (("pdf files","*.pdf"),("all files","*.*")))
             if self.filename is None:  # asksaveasfile return `None` if dialog closed with "cancel".
                 return
+            self.image.save(str(self.settlementname)+".png")
 
         else: self.filename = "Settlements/" + self.settlementname.get() + ".pdf"
         print (self.filename)
@@ -543,19 +586,19 @@ class Main(Tk):
                 value = self.valuenames(self.conn, "district_feature", "district_feature_id", str(valueid))
             self.district_type_feature[num][0+type] = value[1]
             self.district_type_feature[num][2+type] = value[2]
-            self.generate(False,False,False)
+            self.generate(False,False,False,False,False)
         else: print("required district")
         #event = ast.literal_eval("<ButtonPress event state=Mod1 num=1 x="+str(self.lastcoord[0])+" y="+str(self.lastcoord[1])+">")
 
         #pyautogui.click(self.lastcoord[0], self.lastcoord[1])
         #event.x = self.lastcoord[0]
         #event.y = self.lastcoord[1]
-        #self.click(event)
+        #self.click(evt=ast.literal_eval("<ButtonPress event state=Mod1 num=1 x="+str(self.lastcoord[0])+" y="+str(self.lastcoord[1])+">"))
         #print (self.lastcoord)
         #self.can.itemconfig(self.lastclicked, width=3)
 
     def click(self, evt): #I no longer know where click starts and clickrelease ends....
-        print (evt)
+        #print (evt)
         x, y = evt.x, evt.y
         offset = self.can.find_all()[0]  # returns the ID of the first object on the canvas as it increases cnstly.
         clicked = int(self.can.find_closest(x, y)[0]) - offset
@@ -600,9 +643,12 @@ class Main(Tk):
                 self.btn_reroll_district.config(fg="gray")
 
 
-            description = str(self.district_type_feature[self.num][0]) + "\n\n" + str(self.district_type_feature[self.num][1])+"\n\n"+str(self.required)
-            self.highlightdescription.delete('1.0', END)
-            self.highlightdescription.insert(END, description)
+            self.highlight_district.set (str(self.district_type_feature[self.num][0]))
+            self.highlight_feature.set(str(self.district_type_feature[self.num][1]))
+            self.highlight_required.set(str(self.required))
+            #description = str(self.district_type_feature[self.num][0]) + "\n\n" + str(self.district_type_feature[self.num][1])+"\n\n"+str(self.required)
+            #self.highlightdescription.delete('1.0', END)
+            #self.highlightdescription.insert(END, description)
 
             self.lastclicked=rawclicked
             w=self.can.bbox(self.lastclicked)
@@ -793,7 +839,7 @@ class Main(Tk):
         if self.editing:
             self.editing = False
             self.can.config(background="#fffafa")
-            self.generate(False,True,False)
+            self.generate(False,False,False,True,False)
         else:
             self.editing = True
             self.can.config(background="#a1e2a1")
@@ -839,6 +885,9 @@ class Main(Tk):
             #self.suffix = self.suffix[1].split("/")
         self.refresh_name(length)
 
+    #def input_name(self):
+
+
     def refresh_name(self,length): #rerolls the name components only. Essentialy a "soft reroll"
         name_part=[0]*3
         name_part[0] = (random.randint(1, len(self.prefix)))-1
@@ -873,13 +922,17 @@ class Main(Tk):
         temp = self.valuenames(self.conn, self.layouttype, "layout_id", str(layoutid))
         return temp
 
-    def generate(self, dolayout,dodistricts,layouttype): #rolls a new layout and/or new districts. basically all the rolling.
+    def generate(self, dotheme,dofeature, dolayout,dodistricts,layouttype): #rolls a new layout and/or new districts. basically all the rolling.
         settlement_value=[0]*3
         #generates the values for the settlement theme, feature and layout.
         for x in range(2): settlement_value[x]=(random.randint(1, self.count[x]))
         with self.conn:
-            self.settlement_theme = self.valuenames(self.conn, "theme", "theme_id", str(settlement_value[0]))
-            self.settlement_feature = self.valuenames(self.conn, "settlement_feature", "set_feature_id", str(settlement_value[1]))
+            if dotheme:
+                self.settlement_theme = self.valuenames(self.conn, "theme", "theme_id", str(settlement_value[0]))
+                self.highlight_settheme.set(self.settlement_theme[1])
+            if dofeature:
+                self.settlement_feature = self.valuenames(self.conn, "settlement_feature", "set_feature_id", str(settlement_value[1]))
+                self.highlight_setfeature.set(self.settlement_feature[1])
             if dolayout:
                 self.settlement_layout = self.generate_layout(layouttype)
                 #print (self.settlement_layout)
