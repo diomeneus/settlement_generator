@@ -6,6 +6,8 @@ from tkinter.filedialog import askopenfilename
 from tkinter import filedialog
 #from fpdf import FPDF
 
+#class He
+
 class Main(Tk):
     def __init__(self):
         Tk.__init__(self)
@@ -19,80 +21,77 @@ class Main(Tk):
 
         self.config(menu=menubar)
 
-        sm1_list = [[],[]] #first value is a list of stored submenus, second is a count
-        sm2_list = [[],[]] #[[],0]
+        sm_list = [] #a list of submenus ***MAY BE AN OBSOLETE AND UNNEEDED VARIABLE***
+        cbVarList = [] #a list containing lists of variables for checkbox states
+
         menubar.add_cascade(label="File", underline=0, menu=header1_menu)
         menubar.add_cascade(label="Edit", underline=0, menu=header2_menu)
         menubar.add_command(label="Go", underline=0, command=lambda: showcurrent())
 
-        sm1_Titles=(["Category1","Category2"])
-        sm1_1Options = [["Alpha"], ["Beta"], ["Charlie"]]
-        sm1_1Options[0].append(["test1", "test2", "test3", "test4"])
-        sm1_1Options[1].append(["list2stuff", "more stuff"])
-        sm1_1Options[2].append(["example", "w00t"])
+        sm_titles=(["Category1","Category2","Example1"])
 
-        sm1_2Options = [["One"], ["Two"]]
-        sm1_2Options[0].append(["testes", "tester", "testosterone"])
-        sm1_2Options[1].append(["yes", "no"])
+        sm1_options = [["Alpha"], ["Beta"], ["Charlie"]]
+        sm1_options[0].append(["test1", "test2", "test3", "test4"])
+        sm1_options[1].append(["list2stuff", "more stuff"])
+        sm1_options[2].append(["example", "w00t"])
+        tmplist = []
+        for _ in enumerate(sm1_options): tmplist.append(IntVar(self))
+        cbVarList.append(tmplist)  # creates an intvar for each option
+        sm_list.append(sm1_options)
 
-        sm2_Titles = (["Example1"])
-        sm2_1Options = [["Sub1"], ["Sub2"],["Sub3"],["Sub4"]]
-        sm2_1Options[0].append(["Mario", "Luigi", "Peach","Toad"])
-        sm2_1Options[1].append(["dog", "cat"])
-        sm2_1Options[2].append(["car", "plane", "boat"])
-        sm2_1Options[3].append(["Shovel", "Rake","Screwdriver","Drill"])
+        sm2_options = [["One"], ["Two"]]
+        sm2_options[0].append(["testes", "tester", "testosterone"])
+        sm2_options[1].append(["yes", "no"])
+        tmplist = []
+        for _ in enumerate(sm2_options): tmplist.append(IntVar(self))
+        cbVarList.append(tmplist)
+        sm_list.append(sm2_options)
 
-        cbVarList=[[],[]]
-        for index, x in enumerate(sm1_1Options+sm1_2Options): #Takes the list of sm01options and makes an intVar for each for checkbuttons
-            cbVarList[0].append(IntVar(self)) #appends an intVar to the list
-            cbVarList[0][index].set(1) #on by default
-        cbVarList+=[]
-        for index, x in enumerate(sm2_1Options): #Takes the list of smoptions and makes an intVar for each for checkbuttons
-            cbVarList[1].append(IntVar(self)) #appends an intVar to the list
-            cbVarList[1][index].set(1) #on by default
+        sm3_options = [["Sub1"], ["Sub2"],["Sub3"],["Sub4"]]
+        sm3_options[0].append(["Mario", "Luigi", "Peach","Toad"])
+        sm3_options[1].append(["dog", "cat"])
+        sm3_options[2].append(["car", "plane", "boat"])
+        sm3_options[3].append(["Shovel", "Rake","Screwdriver","Drill"])
+        tmplist = []
+        for _ in enumerate(sm3_options): tmplist.append(IntVar(self))
+        cbVarList.append(tmplist)
+        sm_list.append(sm3_options)
 
-        ###--------------------HEADER 1 drop down--------------------###
+        for i in cbVarList: #cbVarlist is a list of checkbox lists... this just goes 2 layers deep and defauls them to 1
+            for x in i: x.set(1)
+
+        ###HEADER1
         header1_menu.add_command(label="Save PDF", command=lambda: self.exportPDF())
-        #Copy this section and paste for each submenu you add, add single buttons here.
-        sm1_1 = Menu(header1_menu)
-        sm1_list[0].append(sm1_1)           #adds the menu to a list of menus
-        sm1_list[1].append(len(sm1_1Options))     #adds the count of cb options in this menu to a secondary list of matching length
-        sm1_1.add_command(label="All",command=lambda :modAll(cbVarList[0][0:len(sm1_1Options)],1))
-        sm1_1.add_command(label="None",command=lambda :modAll(cbVarList[0][0:len(sm1_1Options)],0))
-        sm1_1.add_separator()
-        for index, i in enumerate(sm1_1Options):
-            sm1_1.add_checkbutton(label=i[0],variable=cbVarList[0][index],onvalue=1,offvalue=0, command = lambda :refreshState())
-        #submenu2
-        sm1_2 = Menu(header1_menu)
-        sm1_list[0].append(sm1_2)
-        sm1_list[1].append(len(sm1_2Options))
-        sm1_2.add_command(label="All", command=lambda: modAll(cbVarList[0][-len(sm1_2Options):], 1))
-        sm1_2.add_command(label="None", command=lambda: modAll(cbVarList[0][-len(sm1_2Options):], 0))
-        sm1_2.add_separator()
-        for index, i in enumerate(sm1_2Options, start=len(sm1_1Options)):
-            sm1_2.add_checkbutton(label=i[0], variable=cbVarList[0][index], onvalue=1, offvalue=0, command = lambda :refreshState())
-        #adds the submenues to the header drop down.
-        for index, i in enumerate(sm1_Titles): #adds every sub menu to a different entry under file
-            header1_menu.add_cascade(label=i, menu=sm1_list[0][index], underline=0)
+        sm1 = Menu(header1_menu)
+        sm1.add_command(label="All",command=lambda :modAll(cbVarList[0],1))
+        sm1.add_command(label="None",command=lambda :modAll(cbVarList[0],0))
+        sm1.add_separator()
+        for index, i in enumerate(sm1_options):
+            sm1.add_checkbutton(label=i[0],variable=cbVarList[0][index],onvalue=1,offvalue=0, command = lambda :refreshState())
+        header1_menu.add_cascade(label=sm_titles[0],menu=sm1,underline=0)
+
+        sm2 = Menu(header1_menu)
+        sm2.add_command(label="All", command=lambda: modAll(cbVarList[1], 1))
+        sm2.add_command(label="None", command=lambda: modAll(cbVarList[1], 0))
+        sm2.add_separator()
+        for index, i in enumerate(sm2_options):
+            sm2.add_checkbutton(label=i[0], variable=cbVarList[1][index], onvalue=1, offvalue=0, command = lambda :refreshState())
+        header1_menu.add_cascade(label=sm_titles[1], menu=sm2, underline=0)
         header1_menu.add_command(label="Exit", underline=0, command=self.onExit)
 
-        ###--------------------HEADER 2 drop down--------------------###
-        sm2_1 = Menu(header2_menu)
-        sm2_list[0].append(sm2_1)
-        sm2_list[1].append(len(sm2_1Options))
-        sm2_1.add_command(label="All", command=lambda: modAll(cbVarList[1][0:len(sm2_1Options)], 1))
-        sm2_1.add_command(label="None", command=lambda: modAll(cbVarList[1][0:len(sm2_1Options)], 0))
-        sm2_1.add_separator()
-        for index, i in enumerate(sm2_1Options):
-            sm2_1.add_checkbutton(label=i[0], variable=cbVarList[1][index], onvalue=1, offvalue=0, command=lambda: refreshState())
-        for index, i in enumerate(sm2_Titles):  # adds every sub menu to a different entry under file
-            header2_menu.add_cascade(label=i, menu=sm2_list[0][index], underline=0)
+        ###HEADER2
+        sm3 = Menu(header2_menu)
+        sm3.add_command(label="All", command=lambda: modAll(cbVarList[2][0:len(sm3_options)], 1))
+        sm3.add_command(label="None", command=lambda: modAll(cbVarList[2][0:len(sm3_options)], 0))
+        sm3.add_separator()
+        for index, i in enumerate(sm3_options):
+            sm3.add_checkbutton(label=i[0], variable=cbVarList[2][index], onvalue=1, offvalue=0, command=lambda: refreshState())
+        header2_menu.add_cascade(label=sm_titles[2], menu=sm3, underline=0)
 
         ###--------------------Textbox--------------------###
         T = Text(self, height=4, width=60)
         T.configure(font=mainfont)
         T.pack()
-        #T.insert(END, "Just a text Widget\nin two lines\n")
 
         # takes a list of variables and sets them to the state requested... need try's to stop you from sending str to an intvar and such
         def modAll(var, state):
@@ -100,21 +99,33 @@ class Main(Tk):
                 var[index].set(state)
 
         def showcurrent():
-            for index, list in enumerate(cbVarList, start=1): #a convaluted way to dissassemble which checkboxes are in which menus...
-                num = 1
-                for n,i in enumerate(list,start=1):
-                    if index == 1:
-                        if n == sm1_list[1][0]+1: num+=1
-                    if index == 2:
-                        if n == sm2_list[1][0] + 1: num += 1
-                    print ("Header:",index,"submenu:",num,"cb state:",i.get())
-                #print (index,list)
+            checks_on = []
+            checks_off = []
+            for x, i in enumerate(cbVarList):
+                cat_total = len(cbVarList[x])
+                for y, o in enumerate(i):
+                    if o.get() == 1:
+                        checks_on.append(sm_list[x][y][0])
+                    else:
+                        checks_off.append(sm_list[x][y][0])
+                        cat_total = cat_total-1
+                if cat_total == len(cbVarList[x]):
+                    print ("All of",sm_titles[x],"selected.")
+                elif cat_total > 0:
+                    print("Some of",sm_titles[x], "selected")
+                else: print ("None of",sm_titles[x], "selected")
+            print ("Options  on: ",checks_on)
+            print ("Options off:",checks_off)
+
+            #for t in sm_titles:
+            #    print (t,)
+
             textPackage="boobs"
             T.delete(END)
             T.insert(END, textPackage)
 
         def refreshState():
-            print (cbVarList)
+            print("Option state changed")
 
     def exportPDF(self):  # only works properly when invoked from a popup window currently. makes a pdf.
         self.filename = filedialog.asksaveasfilename(initialfile="filename" + ".pdf", initialdir="/",
