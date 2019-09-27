@@ -9,11 +9,24 @@ import random
 import os
 import ast
 
+#class Controls_GearGen(Frame):
+
+
+
 class Main(Tk):
     def __init__(self):
         Tk.__init__(self)
         self.title("Abandoned Gear Generator")
-
+        """OK, here is the plan... I'm going to injest
+        This quality gear generator with...
+        Magic Item Generator...
+        Crafting tracker...
+        
+        Player version that tracks crafting progress?
+        DM version for generating gear
+        
+        you need a system for how the 'minor quirks' are adjusted based on YOU making the item.
+        """
         TYPE = ["Armor", "Light Armor", "Medium Armor", "Heavy Armor", "Weapons", "Simple Weapons", "Martial Weapons", "Melee Weapons","Ranged Weapons"]
         MATERIAL = ["Random", "Common", "Uncommon", "Rare", "Very Rare", "Legendary"]
 
@@ -31,21 +44,62 @@ class Main(Tk):
         var2.set(MATERIAL[0])  # default value
 
         OptionMenu(self, var1, *TYPE).grid(column=0,row=0)
-        OptionMenu(self, var2, *MATERIAL).grid(column=1, row=0)
+        OptionMenu(self, var2, *MATERIAL).grid(column=0, row=1)
         qty = Entry (self)
-        qty.grid(column=2, row=0)
-        go = Button (self, text="Generate",command=lambda :generate())
-        go.grid(column=3, row=0)
+        qty.grid(column=0, row=2)
+        qty.insert(END, '10')
+        go = Button (self, text="Go",command=lambda :generate())
+        go.grid(column=0, row=3)
 
         #setting up our frames
         mainFrame = Frame(self)
-        mainFrame.grid(column=0,row=1,columnspan=3)
+        mainFrame.grid(column=1,row=0)
 
+        # self.frames = {}
+        # for F in (Controls_Editor, Controls_Generator):
+        #     page_name = F.__name__
+        #     frame = F(parent=mainFrame, controller=self)
+        #     self.frames[page_name] = frame
+        #     frame.grid(row=0, column=0, sticky="nsew")
+        # self.show_frame("Controls_Generator")
+        # controlFrame = Frame(self)
+        # controlFrame.grid(column=0,row=0)
+
+        displayFrame = Frame(self)
+        displayFrame.grid(column=0,row=0)
+
+        width = 350
+        height = 350
+
+        #self.can.config(width=300, height=300)
+        #self.can.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+        #self.can.pack(side=LEFT, expand=True, fill=BOTH)
+
+        self.can = Canvas(mainFrame, width=width, height=height, bg="#fffafa")
+        self.can.grid(row=0, column=0, columnspan=4)  # .pack()
+        qty.focus_set()
+
+        vbar = Scrollbar(mainFrame, orient=VERTICAL)
+        vbar.grid()
+        vbar.config(command=self.can.yview)
+        self.can.config(yscrollcommand=vbar.set)
         # displayFrame = Frame(self)
         # displayFrame.grid(column=1,row=0)
 
     #probably don't need, but made simple
+        # def clearcan():
+        #     for x in self.can:
+        #         print (x)
+        def open_player():
+            self.file_path = filedialog.askopenfilename()
+
+        def save_player():
+            #should only invoke the dialog for path and name 1st time.
+            if not self.file_path : self.file_path = filedialog.askopenfilename()
+
+
         def generate():
+            self.can.delete("all")
             print ("\n")
             quantity = int(qty.get())
             items = []
@@ -59,7 +113,7 @@ class Main(Tk):
             if var1.get() == "Martial Weapons": type_gallery += martialMeleeWeapons+martialRangedWeapons
             if var1.get() == "Melee Weapons": type_gallery += simpleMeleeWeapons+martialMeleeWeapons
             if var1.get() == "Ranged Weapons": type_gallery += simpleRangedWeapons+martialRangedWeapons
-
+            material = var2.get()
             for x in range (quantity):
                 if var2.get() == "Random":
                     roll = random.randint (1,20)
@@ -87,7 +141,7 @@ class Main(Tk):
                 items.append([quality,material,random.randint(1,100)])
             print (type_gallery)
 
-            for x in items:
+            for n, x in enumerate(items):
                 type_selection = random.choice (type_gallery)
                 material = type_selection[1]
                 if x[0] == "Ruined": qlty_mod = 0.1
@@ -104,8 +158,9 @@ class Main(Tk):
                 if x[1] == "Very Rare": mat_mod = 1.8
                 if x[1] == "Legendary": mat_mod = 2.2
 
-                print (x[0],type_selection[0], str(x[2])+"% of",x[1],"material:",math.ceil(type_selection[1]*0.5*qlty_mod*mat_mod),"gp CM")
-
+                temptext = str(x[0])+' '+str(type_selection[0])+' '+str(x[2])+"% of "+str(x[1])+" material: "+str(math.ceil(type_selection[1]*0.5*qlty_mod*mat_mod))+"gp CM"
+                print (temptext)
+                self.can.create_text(5, 10+n*15, fill="darkblue", font="Arial 9", text=temptext,anchor=W)
 
 
 
@@ -140,7 +195,7 @@ class Main(Tk):
         TextArea2 = Text(bottomframe, height=20, width=int(width/9))
         TextArea2.insert(END, "More words")
         TextArea2.pack(expand=YES, fill=BOTH)
-        TextArea2.config(font="arial",wrap=WORD,)
+        TextArea2.config(font="arial",wrap=WORD)
 
         popup.mainloop()
 
