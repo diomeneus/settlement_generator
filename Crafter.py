@@ -62,21 +62,21 @@ class GearGen(Frame):
         geometry = [350, 350, 120]
         # width, height, controls width
 
-        OptionMenu(controlFrame, typeString, *TYPE).grid(column=0, row=0)
-        OptionMenu(controlFrame, var2materialString, *MATERIAL).grid(column=0, row=1)
+        OptionMenu(controlFrame, typeString, *TYPE).pack()
+        OptionMenu(controlFrame, var2materialString, *MATERIAL).pack()
         qty = Entry(controlFrame)
-        qty.grid(column=0, row=2)
+        qty.pack()
         qty.insert(END, '10')
         go = Button(controlFrame, text="Go", command=lambda: generate())
-        go.grid(column=0, row=3)
+        go.pack()
 
 
         self.can = Canvas(displayFrame, width=geometry[0], height=geometry[1], bg="#fffafa")
-        self.can.grid(row=0, column=0)  # .pack()
+        self.can.pack()#grid(row=0, column=0)  # .pack()
         qty.focus_set()
 
         vbar = Scrollbar(displayFrame, orient=VERTICAL)
-        vbar.grid()
+        vbar.pack()#grid()
         vbar.config(command=self.can.yview)
         self.can.config(yscrollcommand=vbar.set)
 
@@ -209,8 +209,8 @@ class Main(Tk):
 
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label="Open", command=lambda: self.open())
-        filemenu.add_command(label="Save", command=lambda: self.save(True,False))
-        filemenu.add_command(label="Save As", command=lambda: self.save(True,True))
+        filemenu.add_command(label="Save", command=lambda: self.save(False))
+        filemenu.add_command(label="Save As", command=lambda: self.save(True))
         filemenu.add_command(label="Print", command=lambda: [self.save(False),self.make_print()])
         menubar.add_cascade(label="File", menu=filemenu)
 
@@ -240,12 +240,13 @@ class Main(Tk):
             frame = F(parent=mainFrame, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        self.show_frame("GearGen")
+
+
 
         displayFrame = Frame(self)
         displayFrame.grid(column=1,row=0)
 
-
+        self.filename = None
         #Assigning controls
         # self.can.bind("<Button-1>", self.click)
         # self.bind("<B1-Motion>", self.drag)
@@ -256,22 +257,28 @@ class Main(Tk):
         # self.can.bind("e", self.key_empty)
         # self.can.focus_set()  #focus the window for keyboard controls
 
+        self.launcher()
+
     def show_frame(self, page_name): #swaps the left frame from editor to generator controls
         frame = self.frames[page_name]
         frame.tkraise()
+        self.program = page_name
 
     def test(self,arg):
         print("successful test of the",arg,"command")
 
-    def save(self,dialog,saveas): #only works properly when invoked from a popup window currently. makes a pdf.
-        print("save a thing, 1st value i think was to track if you working off a current one or a new one that needs a filename-path. Basically first hit of hte save should invoke save as")
-        if dialog:
-            self.filename = filedialog.asksaveasfilename(initialfile= self.settlementname.get()+".pdf",initialdir = "/",title = "Select file",filetypes = (("pdf files","*.pdf"),("all files","*.*")))
+    def save(self,saveas): #only works properly when invoked from a popup window currently. makes a pdf.
+
+        if saveas or not self.filename:
+            self.filename = filedialog.asksaveasfilename(initialfile= "",initialdir = "../",title = "Select file",filetypes = (("Crafter files","*.dio"),("all files","*.*")))
             if self.filename is None:  # asksaveasfile return `None` if dialog closed with "cancel".
                 return
-            self.image.save(str(self.settlementname)+".png")
 
-        else: self.filename = "Settlements/" + self.settlementname.get() + ".pdf"
+        file = open(self.filename, "w+")
+        file.write("a successful test of the save command")
+        file.close()
+
+        #else: self.filename = "Settlements/" + self.settlementname.get() + ".pdf"
         print (self.filename)
 
 
@@ -280,21 +287,22 @@ class Main(Tk):
         #os.startfile(self.filename, "print")
 
     def open(self):
-        filename = askopenfilename()  # show an "Open" dialog box and return the path to the selected file
-        print(filename)
+        self.filename = askopenfilename()  # show an "Open" dialog box and return the path to the selected file
+        print (self.filename)
+        file = open(self.filename, "r")
+        filecontents = file.readlines()
+        file.close()
+        return filecontents
 
-    def popout(self): #makes a popup window with the current settlement and the full description.
-        width = 800
-        height = 600
+    def launcher(self):
         popup = Toplevel()
-        popup.title("popup")
-        popup.geometry("300x200")
-
-        popupbar = Menu(popup)
-        popupbar.add_cascade(label="Save", command=lambda: self.save(True))
-        popupbar.add_cascade(label="Print", command=lambda: [self.save(False),self.make_print()])
-        popupbar.add_cascade(label="Close", command=popup.destroy)
-        popup.config(menu=popupbar)
+        popup.title("Crafter Launcher")
+        popup.geometry("150x104")
+        LabelFrame(popup, text="Crafter Launcher")
+        Button(popup, text="Gear Generator",width=100,command=lambda: [self.show_frame("GearGen"),popup.destroy()]).pack()
+        Button(popup, text="Enchanter",width=100,command=lambda: [self.show_frame("Enchanter"),popup.destroy()]).pack()
+        Button(popup, text="Crafter",width=100,command=lambda: [self.show_frame("Crafter"),popup.destroy()]).pack()
+        Button(popup, text="Open Crafter",width=100,command=lambda: [self.open(),popup.destroy()]).pack()
 
         popup.mainloop()
 
