@@ -17,8 +17,8 @@ class GearGen(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
-        
-        self.title("Abandoned Gear Generator")
+
+        #self.title("Abandoned Gear Generator")
         """OK, here is the plan... I'm going to injest
         This quality gear generator with...
         Magic Item Generator...
@@ -70,12 +70,12 @@ class GearGen(Frame):
         go = Button(controlFrame, text="Go", command=lambda: generate())
         go.grid(column=0, row=3)
 
-        
+
         self.can = Canvas(displayFrame, width=geometry[0], height=geometry[1], bg="#fffafa")
         self.can.grid(row=0, column=0)  # .pack()
         qty.focus_set()
 
-        vbar = Scrollbar(mainFrame, orient=VERTICAL)
+        vbar = Scrollbar(displayFrame, orient=VERTICAL)
         vbar.grid()
         vbar.config(command=self.can.yview)
         self.can.config(yscrollcommand=vbar.set)
@@ -156,8 +156,8 @@ class GearGen(Frame):
                     x[1]) + " material: " + str(math.ceil(type_selection[1] * 0.5 * qlty_mod * mat_mod)) + "gp CM"
                 print(temptext)
                 self.can.create_text(5, 10 + n * 15, fill="darkblue", font="Arial 9", text=temptext, anchor=W)
-       
-        
+
+
 
 
 class Enchanter(Frame):
@@ -198,7 +198,7 @@ class Crafter(Frame):
         geometry = [350, 350, 120]
         # width, height, controls width
 
-        
+
 class Main(Tk):
     def __init__(self):
         Tk.__init__(self)
@@ -240,22 +240,22 @@ class Main(Tk):
             frame = F(parent=mainFrame, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        self.show_frame("Controls_GearGen")
+        self.show_frame("GearGen")
 
         displayFrame = Frame(self)
         displayFrame.grid(column=1,row=0)
 
-       
+
         #Assigning controls
-        self.can.bind("<Button-1>", self.click)
-        self.bind("<B1-Motion>", self.drag)
-        self.bind('<ButtonRelease-1>', self.clickrelease)
-        self.can.bind("<Button-2>", self.mclick)
-        self.can.bind("<Button-3>", self.rclick)
-        self.can.bind("c", self.key_commit)
-        self.can.bind("e", self.key_empty)
-        self.can.focus_set()  #focus the window for keyboard controls
-  
+        # self.can.bind("<Button-1>", self.click)
+        # self.bind("<B1-Motion>", self.drag)
+        # self.bind('<ButtonRelease-1>', self.clickrelease)
+        # self.can.bind("<Button-2>", self.mclick)
+        # self.can.bind("<Button-3>", self.rclick)
+        # self.can.bind("c", self.key_commit)
+        # self.can.bind("e", self.key_empty)
+        # self.can.focus_set()  #focus the window for keyboard controls
+
     def show_frame(self, page_name): #swaps the left frame from editor to generator controls
         frame = self.frames[page_name]
         frame.tkraise()
@@ -273,8 +273,8 @@ class Main(Tk):
 
         else: self.filename = "Settlements/" + self.settlementname.get() + ".pdf"
         print (self.filename)
-        
-        
+
+
     def make_print(self):
         print (self.filename)
         #os.startfile(self.filename, "print")
@@ -295,13 +295,13 @@ class Main(Tk):
         popupbar.add_cascade(label="Print", command=lambda: [self.save(False),self.make_print()])
         popupbar.add_cascade(label="Close", command=popup.destroy)
         popup.config(menu=popupbar)
-        
+
         popup.mainloop()
 
     def click(self, evt): #I no longer know where click starts and clickrelease ends....
         print (evt)
         #x, y = evt.x, evt.y
-   
+
     def mclick(self, evt):
         print(evt)
 
