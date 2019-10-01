@@ -62,23 +62,23 @@ class GearGen(Frame):
         geometry = [350, 350, 120]
         # width, height, controls width
 
-        OptionMenu(controlFrame, typeString, *TYPE).pack()
-        OptionMenu(controlFrame, var2materialString, *MATERIAL).pack()
+        OptionMenu(controlFrame, typeString, *TYPE).pack()#side=LEFT)
+        OptionMenu(controlFrame, var2materialString, *MATERIAL).pack()#side=LEFT)
         qty = Entry(controlFrame)
-        qty.pack()
+        qty.pack()#side=LEFT)
         qty.insert(END, '10')
         go = Button(controlFrame, text="Go", command=lambda: generate())
-        go.pack()
+        go.pack()#side=LEFT)
 
 
         self.can = Canvas(displayFrame, width=geometry[0], height=geometry[1], bg="#fffafa")
         self.can.pack()#grid(row=0, column=0)  # .pack()
         qty.focus_set()
 
-        vbar = Scrollbar(displayFrame, orient=VERTICAL)
+        vbar = Scrollbar(controlFrame, orient=VERTICAL)
         vbar.pack()#grid()
         vbar.config(command=self.can.yview)
-        self.can.config(yscrollcommand=vbar.set)
+        #self.can.config(yscrollcommand=vbar.set)
 
         def generate():
             self.can.delete("all")
@@ -134,7 +134,11 @@ class GearGen(Frame):
 
                 items.append([quality, material, random.randint(1, 100)])
             print(type_gallery)
-
+            temptext = ""
+            T = Text(self.can, height=10, width=50)
+            T.config(yscrollcommand=vbar.set)
+            T.tag_configure('smallfnt', font=('Arial', 10))
+            T.pack()
             for n, x in enumerate(items):
                 type_selection = random.choice(type_gallery)
                 material = type_selection[1]
@@ -152,13 +156,12 @@ class GearGen(Frame):
                 if x[1] == "Very Rare": mat_mod = 1.8
                 if x[1] == "Legendary": mat_mod = 2.2
 
-                temptext = str(x[0]) + ' ' + str(type_selection[0]) + ' ' + str(x[2]) + "% of " + str(
-                    x[1]) + " material: " + str(math.ceil(type_selection[1] * 0.5 * qlty_mod * mat_mod)) + "gp CM"
+                temptext += str(x[0]) + ' ' + str(type_selection[0]) + ' ' + str(x[2]) + "% of " + str(
+                    x[1]) + " material: " + str(math.ceil(type_selection[1] * 0.5 * qlty_mod * mat_mod)) + "gp CM\n"
                 print(temptext)
-                self.can.create_text(5, 10 + n * 15, fill="darkblue", font="Arial 9", text=temptext, anchor=W)
+                #self.can.create_text(5, 10 + n * 15, fill="darkblue", font="Arial 9", text=temptext, anchor=W)
 
-
-
+                T.insert(END, temptext,'smallfnt')
 
 class Enchanter(Frame):
     def __init__(self, parent, controller):
@@ -197,6 +200,45 @@ class Crafter(Frame):
         displayFrame.grid(column=1, row=0)
         geometry = [350, 350, 120]
         # width, height, controls width
+
+        attframe = LabelFrame (controlFrame, text="Attributes",labelanchor=N,relief=GROOVE)
+        attframe.grid(column=0,row=0,columnspan=2)#.pack(fill="both", expand="yes")
+        Label(attframe, text="Proficiency").grid(column=0, row=0)  # .pack(side=LEFT)
+        proficiency = Entry(attframe, width=2).grid(column=1, row=0)  # .pack(side=RIGHT)
+
+        Label (attframe, text="Strength").grid(column=0,row=1)
+        strength = Entry(attframe, width=2).grid(column=1,row=1)
+        Label(attframe, text="Dexterity").grid(column=0,row=2)
+        dexterity = Entry(attframe, width=2).grid(column=1,row=2)
+        Label(attframe, text="Constitution").grid(column=0, row=3)
+        dexterity = Entry(attframe, width=2).grid(column=1, row=3)
+        Label(attframe, text="Intelligence").grid(column=0, row=4)
+        dexterity = Entry(attframe, width=2).grid(column=1, row=4)
+        Label(attframe, text="Wisdom").grid(column=0, row=5)
+        dexterity = Entry(attframe, width=2).grid(column=1, row=5)
+        Label(attframe, text="Charisma").grid(column=0, row=6)
+        dexterity = Entry(attframe, width=2).grid(column=1, row=6)
+        Label(attframe, text="Bonus").grid(column=0, row=7)
+        dexterity = Entry(attframe, width=2).grid(column=1, row=7)
+
+        Label(controlFrame, text="Crafting Roll").grid(column=0, row=1)
+        craft_entry = Entry(controlFrame, width=2).grid(column=1, row=1)
+
+        Button(controlFrame, text="Roll for me").grid(column=0, row=2)
+        Button(controlFrame, text="Enter Roll").grid(column=1, row=2)
+
+        workrate = StringVar()
+        checks_needed = StringVar()
+        #if more than 20 split into weeks not days
+        craft_mats_cost = StringVar()
+
+        infoLabel = LabelFrame(controlFrame,text="Info",labelanchor=N,relief=GROOVE)
+        infoLabel.grid(column=0,row=4,columnspan=2)
+        Label(infoLabel,text="Work Rate: ").grid(column=0, row=0)
+        Label(infoLabel,textvariable=workrate).grid(column=1, row=0)
+
+
+#class Overlord(Tk):
 
 
 class Main(Tk):
